@@ -9,15 +9,17 @@
 .POSIX:
 EMACS = emacs
 EL = scanner.el
+TEST = scanner-test.el
 ELPA_EXT = dash
-LDFLAGS = -L ./dep/dash -L ../elpa/packages/hydra
+LDFLAGS = -L ./dep/dash
 
-.PHONY: compile clean depclean depsetup depupdate run
+.PHONY: compile test clean depclean depsetup depupdate run
 
-compile: $(EL:.el=.elc)
+compile: $(EL:.el=.elc) $(TEST:.el=.elc)
+test: $(TEST:.el=.elc)
 
 clean:
-	rm -f scanner.elc
+	rm -f scanner.elc scanner-test.elc
 
 depclean:
 	rm -rf ./dep/*
@@ -34,6 +36,11 @@ depupdate:
 .SUFFIXES: .el .elc
 .el.elc:
 	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
+
+
+check: $(TEST:.el=.elc)
+	$(EMACS) -Q --batch -L . $(LDFLAGS) -l scanner-test.elc	\
+	-f ert-run-tests-batch-and-exit
 
 run: $(EL:.el=.elc)
 	$(EMACS) -Q -L . $(LDFLAGS) --eval "(load \"scannner\")" 	\
