@@ -38,7 +38,7 @@ depupdate:
 	$(EMACS) -Q --batch -L . $(LDFLAGS) -f batch-byte-compile $<
 
 
-check: $(TEST:.el=.elc)
+check: $(EL:.el=.elc) $(TEST:.el=.elc)
 	$(EMACS) -Q --batch -L . $(LDFLAGS) -l scanner-test.elc	\
 	-f ert-run-tests-batch-and-exit
 
