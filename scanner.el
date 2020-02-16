@@ -27,7 +27,8 @@
 
 ;;; Commentary:
 
-;; Scan documents and images...
+;; Scan documents and images using scanimage(1) from the SANE distribution
+;; and tesseract(1) for OCR.
 
 ;;; Code:
 
@@ -37,15 +38,12 @@
 
 (defgroup scanner nil
   "Scan documents and images."
-  :group 'Multimedia)
+  :group 'multimedia)
 
-(defcustom scanner-doc-resolution 300
-  "Default resolution for documents."
-  :type '(integer))
-
-(defcustom scanner-image-resolution 600
-  "Default resolution for images."
-  :type '(integer))
+(defcustom scanner-resolution
+  '(:image 600 :doc 300)
+  "Default resolutions for images and documents."
+  :type '(plist :value-type number))
 
 (defcustom scanner-paper-sizes
   '(:a3
@@ -74,38 +72,14 @@ The value must be one of the keys in the paper sizes list."
   :type '(restricted-sexp :match-alternatives
 			  ((lambda (k) (plist-member scanner-paper-sizes k)))))
 
-(defcustom scanner-doc-intermediate-format
-  "png"
-  "Intermediate image format for document scanning."
-  :type '(radio (const "jpeg")
-		(const "png")
-		(const "pnm")
-		(const "tiff")))
-
 (defcustom scanner-image-format
-  "jpeg"
-  "Image file format."
-  :type '(radio (const "jpeg")
-		(const "png")
-		(const "pnm")
-		(const "tiff")))
-
-(defcustom scanner-doc-intermediate-format
-  "png"
-  "Intermediate image format for document scanning."
-  :type '(radio (const "jpeg")
-		(const "png")
-		(const "pnm")
-		(const "tiff")))
+  '(:image "jpeg" :doc "pnm")
+  "Image file formats for images and documents (intermediate representation)."
+  :type '(plist :value-type string))
 
 (defcustom scanner-scanimage-program
   (executable-find "scanimage")
   "Path of the scanimage(1) program."
-  :type '(string))
-
-(defcustom scanner-img2pdf-program
-  (executable-find "img2pdf")
-  "Path of the img2pdf program."
   :type '(string))
 
 (defcustom scanner-tesseract-program
@@ -128,7 +102,7 @@ The value must be one of the keys in the paper sizes list."
       widget)))
 
 (defcustom scanner-tesseract-languages
-  '("eng" "deu")
+  '("deu")
   "List of languages passed to tesseract(1) for OCR."
   :type '(repeat :validate scanner--validate-languages string))
 
@@ -142,19 +116,17 @@ The config files may reside in ‘/usr/share/tessdata/configs’."
 
 (defcustom scanner-tesseract-options
   '()
-  "Additional options to pass to tesseract(1).
-FORM?"
+  "Additional options to pass to tesseract(1)."
   :type '(repeat string))
 
 (defcustom scanner-scan-mode
-  "Color"
-  "Scan mode."
-  :type '(string))
+  '(:image "Color" :doc "Color")
+  "Scan modes for images and documents."
+  :type '(plist :value-type string))
 
 (defcustom scanner-scanimage-options
-  '()
-  "Additional options to be passed to scanimage(1).
-FORM?"
+  '("--brightness" "50" "--contrast" "50")
+  "Additional options to be passed to scanimage(1)."
   :type '(repeat string))
 
 (defcustom scanner-device-name
@@ -169,7 +141,7 @@ If nil, auto-detection will be attempted."
   "List of devices detected by SANE.
 Each element of the list has the form (DEVICE TYPE MODEL) where
 DEVICE is the SANE device name, TYPE the type of the device
-\(e.g. \"flatbed scanner\",) and MODEL is the device's model
+\(e.g.  \"flatbed scanner\",) and MODEL is the device's model
 name.")
 
 (eval-when-compile
@@ -218,8 +190,9 @@ results are cached."
 (defun scanner-detect-devices ()
   "Return a list of auto-detected scanning devices.
 
-Each element of the list contains three elements: the SANE device
+Each entry of the list contains three elements: the SANE device
 name, the device type, and the vendor and model names."
+  ;; FIXME use make-process for this?
   (let ((scanners (process-lines scanner-scanimage-program "-f" "%d|%t|%v %m")))
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
@@ -248,23 +221,22 @@ selection is made."
 		 (completing-read "Select scanning device: " choices nil t)
 		 "(" t ")")))))
 
-(defun scanner--scanimage-args (outfile type &optional format)
+(defun scanner--scanimage-args (outfile type &optional img-fmt)
   "Construct the argument list for scanimage(1).
-OUTFILE is the output filename and FORMAT is the output image
+OUTFILE is the output filename and IMG-FMT is the output image
 format.  TYPE is either ‘:image’ or ‘:doc’.
 
-When scanning documents (type :doc), the format argument is
-ignored in favor of ‘scanner-doc-intermediate-format’.  If any of
-the required options from ‘scanner--device-specific-options’ are
-unavailable, they are simply dropped."
+When scanning documents (type :doc), the format argument is used
+for the intermediate representation before conversion to the
+document format.  If any of the required options from
+‘scanner--device-specific-options’ are unavailable, they are
+simply dropped."
   (let ((opts scanner--available-options))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
-		    (concat "--format="
-			    (if (eq :image type)
-				(or format
-				    scanner-image-format)
-			      scanner-doc-intermediate-format))
+		    (-when-let (fmt (or img-fmt
+					(plist-get scanner-image-format type)))
+		      (concat "--format=" fmt))
 		    "-o" outfile
 		    (and (eq :doc type)
 			 (-when-let* ((x (car (member "-x" opts)))
@@ -274,12 +246,12 @@ unavailable, they are simply dropped."
 			   (list x (number-to-string (car size))
 				 y (number-to-string (cadr size)))))
 		    (and (member "--mode" opts)
-			 (concat "--mode=" scanner-scan-mode))
+			 (concat "--mode=" (plist-get scanner-scan-mode type)))
 		    (and (member "--resolution" opts)
 			 (concat "--resolution=" (number-to-string
-						  (if (eq :image type)
-						      scanner-image-resolution
-						    scanner-doc-resolution))))
+						  (plist-get
+						   scanner-resolution
+						   type))))
 		    scanner-scanimage-options))))
 
 (defun scanner--tesseract-args (input output-base)
@@ -289,7 +261,7 @@ output files.  Extensions are added automatically depending on the
 selected output options, see ‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
 		  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
-		  "--dpi" (number-to-string scanner-doc-resolution)
+		  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
 		  scanner-tesseract-options
 		  scanner-tesseract-outputs)))
 
@@ -302,14 +274,17 @@ selected output options, see ‘scanner-tesseract-outputs’."
     ("tif" . "tiff"))
   "List of known image filename extensions with aliases.")
 
-(defun scanner--determine-format (extension)
+(defun scanner--determine-image-format (extension)
   "Determine image file format from EXTENSION."
   (let ((ext (if extension (downcase extension) "")))
     (or (cdr (assoc ext scanner--image-extensions))
-	scanner-image-format)))
+	(plist-get scanner-image-format :image))))
 
 (defun scanner--sentinel (process event)
-  (message (format "%s: %s" process (string-trim event))))
+  ""
+  (let ((ev (string-trim event)))
+    (unless (string= "finished" ev)
+      (message (format "%s: %s" process ev)))))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
@@ -331,14 +306,11 @@ availability of required options."
 	      (t (scanner-select-device)))))
     (scanner--check-device-options)))
 
-(defun scanner-scan-document (&optional _filename)
+(defun scanner-scan-document ()
   "Scan a document named FILENAME."
   (interactive)
   ;; loop in y-or-n-p over pages of the document
   ;; scan multiple pages with configurable time delay
-  ;; write scanned images to temp files
-  ;; convert to temp pdf
-  ;; ask for filename and write file?
   ;; open PDF if configured to do so
   ;; optional filename is for programmatic use (map over list of filenames)
   ;; optional pause for document change?
@@ -346,7 +318,29 @@ availability of required options."
   ;; always find ways to design functions such that automation and
   ;;  functional programming is possible
   ;; write tests using ert
-  )
+  (scanner--ensure-init)
+  (let* ((filename (file-name-sans-extension
+		    (read-file-name "Document file name: ")))
+	 (fmt (plist-get scanner-image-format :doc))
+	 (infile (make-temp-file "scanner" nil (concat "." fmt)))
+	 (scanimage-args (scanner--scanimage-args infile :doc fmt))
+	 (tesseract-args (scanner--tesseract-args infile filename)))
+    (cl-labels ((cleanup (process event)
+			 (let ((ev (string-trim event)))
+			   (unless (string= "finished" ev)
+			     (message (format "%s: %s" process ev)))
+			   (delete-file infile)))
+		(tesseract (process event)
+			   (let ((ev (string-trim event)))
+			     (if (string= "finished" ev)
+				 (make-process :name "Scanner (tesseract)"
+					       :command `(,scanner-tesseract-program
+							  ,@tesseract-args)
+					       :sentinel #'cleanup)
+			       (message (format "%s: %s" process ev))))))
+      (make-process :name "Scanner (scanimage)"
+		    :command `(,scanner-scanimage-program ,@scanimage-args)
+		    :sentinel #'tesseract))))
 
 ;; TODO add batch scanning
 (defun scanner-scan-image ()
@@ -357,12 +351,12 @@ available, ask for a selection interactively."
   (interactive)
   (scanner--ensure-init)
   (let* ((filename (read-file-name "Image file name: "))
-	 (fmt (scanner--determine-format filename))
+	 (fmt (scanner--determine-image-format filename))
 	 (fname (if (file-name-extension filename)
 		    filename
 		  (concat (file-name-sans-extension filename) "." fmt)))
 	 (args (scanner--scanimage-args fname :image fmt)))
-    (make-process :name "Scanner"
+    (make-process :name "Scanner (scanimage)"
 		  :command `(,scanner-scanimage-program ,@args)
 		  :sentinel #'scanner--sentinel)))
 
