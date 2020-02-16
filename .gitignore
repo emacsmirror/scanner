@@ -4,3 +4,7 @@
 *.elc
 TAGS
 /dep
+*.log
+*.jpeg
+*.jpg
+*.png
