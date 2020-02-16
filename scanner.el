@@ -33,6 +33,7 @@
 
 (require 'dash)
 (require 'cl-lib)
+(require 'subr-x)
 
 (defgroup scanner nil
   "Scan documents and images."
@@ -247,16 +248,23 @@ selection is made."
 		 (completing-read "Select scanning device: " choices nil t)
 		 "(" t ")")))))
 
-(defun scanner--scanimage-args (outfile format type)
+(defun scanner--scanimage-args (outfile type &optional format)
   "Construct the argument list for scanimage(1).
 OUTFILE is the output filename and FORMAT is the output image
-format.  TYPE is either ‘:image’ or ‘:doc’."
+format.  TYPE is either ‘:image’ or ‘:doc’.
+
+When scanning documents (type :doc), the format argument is
+ignored in favor of ‘scanner-doc-intermediate-format’.  If any of
+the required options from ‘scanner--device-specific-options’ are
+unavailable, they are simply dropped."
   (let ((opts scanner--available-options))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
-		    (if (eq :image type)
-			(concat "--format=" format)
-		      (concat "--format=" scanner-doc-intermediate-format))
+		    (concat "--format="
+			    (if (eq :image type)
+				(or format
+				    scanner-image-format)
+			      scanner-doc-intermediate-format))
 		    "-o" outfile
 		    (and (eq :doc type)
 			 (-when-let* ((x (car (member "-x" opts)))
@@ -269,7 +277,9 @@ format.  TYPE is either ‘:image’ or ‘:doc’."
 			 (concat "--mode=" scanner-scan-mode))
 		    (and (member "--resolution" opts)
 			 (concat "--resolution=" (number-to-string
-						  scanner-doc-resolution)))
+						  (if (eq :image type)
+						      scanner-image-resolution
+						    scanner-doc-resolution))))
 		    scanner-scanimage-options))))
 
 (defun scanner--tesseract-args (input output-base)
@@ -298,6 +308,29 @@ selected output options, see ‘scanner-tesseract-outputs’."
     (or (cdr (assoc ext scanner--image-extensions))
 	scanner-image-format)))
 
+(defun scanner--sentinel (process event)
+  (message (format "%s: %s" process (string-trim event))))
+
+(defun scanner--ensure-init ()
+  "Ensure that scanning device is initialized.
+If no scanning device has been configured or the configured
+device is not available, attempt auto-detection.  Check for
+availability of required options."
+  (let ((need-autodetect (cond ((null scanner-device-name) t)
+			       ((< 0 (call-process scanner-scanimage-program
+						   nil nil nil "-n"
+						   "-d" scanner-device-name))
+				t)
+			       (t nil))))
+    (when need-autodetect
+      (let ((num-devices (length (scanner-detect-devices))))
+	(cond ((eql 0 num-devices)
+	       (user-error "No scanning device was found"))
+	      ((eql 1 num-devices)
+	       (setq scanner-device-name (caar scanner--detected-devices)))
+	      (t (scanner-select-device)))))
+    (scanner--check-device-options)))
+
 (defun scanner-scan-document (&optional _filename)
   "Scan a document named FILENAME."
   (interactive)
@@ -315,21 +348,23 @@ selected output options, see ‘scanner-tesseract-outputs’."
   ;; write tests using ert
   )
 
+;; TODO add batch scanning
 (defun scanner-scan-image ()
-  "Scan an image."
+  "Scan an image, reading a file name interactively.
+If ‘scanner-device-name’ is nil or this device is unavailable,
+attempt auto-detection.  If more than one scanning devices are
+available, ask for a selection interactively."
   (interactive)
-  (let* ((filename (read-file-name "Image file: "))
+  (scanner--ensure-init)
+  (let* ((filename (read-file-name "Image file name: "))
 	 (fmt (scanner--determine-format filename))
 	 (fname (if (file-name-extension filename)
 		    filename
 		  (concat (file-name-sans-extension filename) "." fmt)))
-	 (args (scanner--scanimage-args fname fmt :image)))
-    (cl-flet ((sentinel (process event)
-			(message
-			 (format "Scanner: %s" (string-trim event)))))
-      (make-process :name "scanimage"
-		    :command `(,scanner-scanimage-program ,@args)
-		    :sentinel #'sentinel))))
+	 (args (scanner--scanimage-args fname :image fmt)))
+    (make-process :name "Scanner"
+		  :command `(,scanner-scanimage-program ,@args)
+		  :sentinel #'scanner--sentinel)))
 
 (provide 'scanner)
 
