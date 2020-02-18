@@ -136,6 +136,11 @@ If nil, auto-detection will be attempted."
   :type '(restricted-sexp :match-alternatives
 			  (stringp 'nil)))
 
+(defcustom scanner-scan-delay
+  3
+  "Delay between document scans in multi-page mode."
+  :type '(number))
+
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
     (define-key map [languages]
@@ -370,54 +375,78 @@ availability of required options."
     (scanner--check-device-options)))
 
 ;;;###autoload
-(defun scanner-scan-document ()
-  "Scan a document named FILENAME."
-  (interactive)
-  ;; loop in y-or-n-p over pages of the document
-  ;; scan multiple pages with configurable time delay
-  ;; open PDF if configured to do so
-  ;; optional filename is for programmatic use (map over list of filenames)
-  ;; optional pause for document change?
-  ;; use prefix arg to decide whether to scan one or many docs
-  ;; always find ways to design functions such that automation and
-  ;;  functional programming is possible
-  ;; write tests using ert
-  (scanner--ensure-init)
-  (let* ((doc-file (file-name-sans-extension
-		    (read-file-name "Document file name: ")))
-	 (fmt (plist-get scanner-image-format :doc))
-	 (img-file (make-temp-file "scanner" nil (concat "." fmt)))
-	 (scanimage-args (scanner--scanimage-args img-file :doc fmt))
-	 (tesseract-args (scanner--tesseract-args img-file doc-file)))
-    (cl-labels ((cleanup (process event)
-			 (let ((ev (string-trim event)))
-			   (unless (string= "finished" ev)
-			     (message "%s: %s" process ev))
-			   (delete-file img-file)))
-		(tesseract (process event)
-			   (let ((ev (string-trim event)))
-			     (if (string= "finished" ev)
-				 (make-process :name "Scanner (tesseract)"
-					       :command
-					       `(,scanner-tesseract-program
-						 ,@tesseract-args)
-					       :sentinel #'cleanup)
-			       (message "%s: %s" process ev)))))
-      (make-process :name "Scanner (scanimage)"
-		    :command `(,scanner-scanimage-program ,@scanimage-args)
-		    :sentinel #'tesseract))))
+(defun scanner-scan-document (npages filename)
+  "Scan a number of NPAGES and write to a document named FILENAME.
+Without a prefix argument, scan one page.  With a non-numeric
+prefix argument, i.e. ‘\\[universal-argument]
+\\[scanner-scan-document]’, scan a page and ask the user for
+confirmation to scan another page, etc.  With a numeric prefix
+argument, e.g. ‘\\[universal-argument] 3
+\\[scanner-scan-document]’, scan that many pages.
 
-;; TODO add batch scanning
-;;;###autoload
-(defun scanner-scan-image ()
-  "Scan an image, reading a file name interactively.
 If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning devices are
 available, ask for a selection interactively."
-  (interactive)
+  (interactive "P\nFDocument file name: ")
   (scanner--ensure-init)
-  (let* ((img-file (read-file-name "Image file name: "))
-	 (fmt (scanner--determine-image-format img-file))
+  (let ((doc-file (file-name-sans-extension filename))
+	(num-pages (prefix-numeric-value npages))
+	(fmt (plist-get scanner-image-format :doc))
+	(file-list '())
+	(fl-file nil))
+    (cl-labels ((cleanup
+		 (process event)
+		 (let ((ev (string-trim event)))
+		   (unless (string= "finished" ev)
+		     (message "%s: %s" process ev))
+		   (dolist (file file-list)
+		     (delete-file file))
+		   (delete-file fl-file)))
+		(tesseract
+		 ()
+		 (setq file-list (nreverse file-list))
+		 (setq fl-file (make-temp-file "scanlist" nil ".txt"
+					       (mapconcat #'identity
+							  file-list
+							  "\n")))
+		 (let ((tesseract-args (scanner--tesseract-args fl-file doc-file)))
+		   (make-process :name "Scanner (tesseract)"
+				 :command `(,scanner-tesseract-program
+					    ,@tesseract-args)
+				 :sentinel #'cleanup)))
+		(scan-or-finish
+		 (process event)
+		 (let ((ev (string-trim event)))
+		   (unless (string= "finished" ev)
+		     (error "%s: %s" process ev))
+		   (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
+					     (scanimage)
+					   (tesseract)))
+			 ((> num-pages 1)
+			  (cl-decf num-pages)
+			  (run-at-time scanner-scan-delay nil #'scanimage))
+			 (t (tesseract)))))
+		(scanimage
+		 ()
+		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
+			(scanimage-args (scanner--scanimage-args img-file
+								 :doc fmt)))
+		   (push img-file file-list)
+		   (make-process :name "Scanner (scanimage)"
+				 :command `(,scanner-scanimage-program
+					    ,@scanimage-args)
+				 :sentinel #'scan-or-finish))))
+      (scanimage))))
+
+;;;###autoload
+(defun scanner-scan-image (img-file)
+  "Scan an image, reading the file name IMG-FILE interactively.
+If ‘scanner-device-name’ is nil or this device is unavailable,
+attempt auto-detection.  If more than one scanning devices are
+available, ask for a selection interactively."
+  (interactive "FImage file name: ")
+  (scanner--ensure-init)
+  (let* ((fmt (scanner--determine-image-format img-file))
 	 (fname (if (file-name-extension img-file)
 		    img-file
 		  (concat (file-name-sans-extension img-file) "." fmt)))
