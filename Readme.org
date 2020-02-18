@@ -1,2 +1,27 @@
 * Scanner: scan documents and images with Emacs
-  
+
+  Scan documents and images using scanimage(1) from the SANE distribution and
+  tesseract(1) for OCR.
+
+  In image mode, one scan is performed with customizable resolution and file
+  format.  An image scan is started with the command ‘scanner-scan-image’.
+  This function tries to guess the file format from the chosen file name or
+  falls back to the configured default.
+
+  In document mode, one or multiple pages can be scanned that are then written
+  in a customizable output format, e.g. PDF (searchable) or text.  Resolution,
+  intermediate image format and paper size are customizable as well.  A
+  document scan is started with the command ‘scanner-scan-document’; without a
+  prefix argument, one page is scanned.  With a non-numeric argument, the user
+  is asked after each scanned page for confirmation to scan another page.
+  With a numeric argument, that many pages are scanned.  In the latter mode, a
+  delay customizable using ‘scanner-scan-delay’ is observed between scans.
+
+  As a backend, tesseract(1) is used for document scans to provide optical
+  character recognition (OCR).  The languages to use can be customized.
+
+  For both images and documents, the scan mode (e.g. "Color" or "Gray") can be
+  customized, if the used scanner supports it.
+
+  Additional options can be passed to the backends using the customization
+  variables ‘scanner-scanimage-switches’ and ‘scanner-tesseract-switches’.
