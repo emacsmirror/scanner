@@ -284,7 +284,7 @@ selected output options, see ‘scanner-tesseract-outputs’."
   ""
   (let ((ev (string-trim event)))
     (unless (string= "finished" ev)
-      (message (format "%s: %s" process ev)))))
+      (message "%s: %s" process ev))))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
@@ -306,6 +306,7 @@ availability of required options."
 	      (t (scanner-select-device)))))
     (scanner--check-device-options)))
 
+;;;###autoload
 (defun scanner-scan-document ()
   "Scan a document named FILENAME."
   (interactive)
@@ -319,30 +320,32 @@ availability of required options."
   ;;  functional programming is possible
   ;; write tests using ert
   (scanner--ensure-init)
-  (let* ((filename (file-name-sans-extension
+  (let* ((doc-file (file-name-sans-extension
 		    (read-file-name "Document file name: ")))
 	 (fmt (plist-get scanner-image-format :doc))
-	 (infile (make-temp-file "scanner" nil (concat "." fmt)))
-	 (scanimage-args (scanner--scanimage-args infile :doc fmt))
-	 (tesseract-args (scanner--tesseract-args infile filename)))
+	 (img-file (make-temp-file "scanner" nil (concat "." fmt)))
+	 (scanimage-args (scanner--scanimage-args img-file :doc fmt))
+	 (tesseract-args (scanner--tesseract-args img-file doc-file)))
     (cl-labels ((cleanup (process event)
 			 (let ((ev (string-trim event)))
 			   (unless (string= "finished" ev)
-			     (message (format "%s: %s" process ev)))
-			   (delete-file infile)))
+			     (message "%s: %s" process ev))
+			   (delete-file img-file)))
 		(tesseract (process event)
 			   (let ((ev (string-trim event)))
 			     (if (string= "finished" ev)
 				 (make-process :name "Scanner (tesseract)"
-					       :command `(,scanner-tesseract-program
-							  ,@tesseract-args)
+					       :command
+					       `(,scanner-tesseract-program
+						 ,@tesseract-args)
 					       :sentinel #'cleanup)
-			       (message (format "%s: %s" process ev))))))
+			       (message "%s: %s" process ev)))))
       (make-process :name "Scanner (scanimage)"
 		    :command `(,scanner-scanimage-program ,@scanimage-args)
 		    :sentinel #'tesseract))))
 
 ;; TODO add batch scanning
+;;;###autoload
 (defun scanner-scan-image ()
   "Scan an image, reading a file name interactively.
 If ‘scanner-device-name’ is nil or this device is unavailable,
@@ -350,11 +353,11 @@ attempt auto-detection.  If more than one scanning devices are
 available, ask for a selection interactively."
   (interactive)
   (scanner--ensure-init)
-  (let* ((filename (read-file-name "Image file name: "))
-	 (fmt (scanner--determine-image-format filename))
-	 (fname (if (file-name-extension filename)
-		    filename
-		  (concat (file-name-sans-extension filename) "." fmt)))
+  (let* ((img-file (read-file-name "Image file name: "))
+	 (fmt (scanner--determine-image-format img-file))
+	 (fname (if (file-name-extension img-file)
+		    img-file
+		  (concat (file-name-sans-extension img-file) "." fmt)))
 	 (args (scanner--scanimage-args fname :image fmt)))
     (make-process :name "Scanner (scanimage)"
 		  :command `(,scanner-scanimage-program ,@args)
