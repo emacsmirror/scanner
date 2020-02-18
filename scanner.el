@@ -254,19 +254,15 @@ name, the device type, and the vendor and model names."
     (setq scanner-tesseract-languages
 	  (completing-read-multiple "Languages: " langs nil t))))
 
-(defun scanner--set-resolution (type res)
-  "Set the resolution for scanning TYPE :image or :doc to RES."
-  (plist-put scanner-resolution type res))
+(defun scanner-set-image-resolution (resolution)
+  "Set the RESOLUTION for scanning images."
+  (interactive "NImage scan resolution: ")
+  (plist-put scanner-resolution :image resolution))
 
-(defun scanner-set-image-resolution ()
-  "Set the resolution for scanning images."
-  (interactive)
-  (scanner--set-resolution :image (read-number "Image scan resolution: " 600)))
-
-(defun scanner-set-document-resolution ()
-  "Set the resolution for scanning documents."
-  (interactive)
-  (scanner--set-resolution :doc (read-number "Document scan resolution: " 300)))
+(defun scanner-set-document-resolution (resolution)
+  "Set the RESOLUTION for scanning documents."
+  (interactive "NDocument scan resolution: ")
+  (plist-put scanner-resolution :doc resolution))
 
 (defun scanner-select-device (&optional detect)
   "Select a scanning device, maybe running auto-detection.
