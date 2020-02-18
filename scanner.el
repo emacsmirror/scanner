@@ -229,7 +229,6 @@ results are cached."
 
 Each entry of the list contains three elements: the SANE device
 name, the device type, and the vendor and model names."
-  ;; FIXME use make-process for this?
   (let ((scanners (process-lines scanner-scanimage-program "-f" "%d|%t|%v %m")))
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
