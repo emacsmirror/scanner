@@ -138,7 +138,7 @@ come with tesseract(1).
 The config files may reside in ‘/usr/share/tessdata/configs’."
   :type '(repeat string))
 
-(defcustom scanner-tesseract-options
+(defcustom scanner-tesseract-switches
   '()
   "Additional options to pass to tesseract(1)."
   :type '(repeat string))
@@ -148,7 +148,7 @@ The config files may reside in ‘/usr/share/tessdata/configs’."
   "Scan modes for images and documents."
   :type '(plist :value-type string))
 
-(defcustom scanner-scanimage-options
+(defcustom scanner-scanimage-switches
   '("--brightness" "50" "--contrast" "50")
   "Additional options to be passed to scanimage(1)."
   :type '(repeat string))
@@ -208,7 +208,7 @@ DEVICE is the SANE device name, TYPE the type of the device
 name.")
 
 (eval-when-compile
-  (defconst scanner--device-specific-options
+  (defconst scanner--device-specific-switches
     '("--mode" "--depth" "--resolution" "-x" "-y")
     "List of required device specific options.
 
@@ -217,18 +217,18 @@ by the scanner package.  If one of these is missing, something may
 not work as expected."))
 
 (defconst scanner--device-option-re
-  (eval-when-compile (regexp-opt scanner--device-specific-options t)))
+  (eval-when-compile (regexp-opt scanner--device-specific-switches t)))
 
-(defvar scanner--available-options
+(defvar scanner--available-switches
   nil
   "List of required options implemented by the device backend.")
 
-(defvar scanner--missing-options
+(defvar scanner--missing-switches
   nil
   "List of required options missing from the device backend.")
 
 
-(defun scanner--check-device-options ()
+(defun scanner--check-device-switches ()
   "Return available and missing options provided by the device.
 
 This function checks the SANE backend of the device selected by
@@ -245,12 +245,12 @@ results are cached."
       (goto-char (point-min))
       (while (re-search-forward scanner--device-option-re nil t)
 	(push (match-string 1) opts)))
-    (setq scanner--available-options opts)
-    (setq scanner--missing-options
-	  (-difference scanner--device-specific-options opts))
-    (list scanner--available-options scanner--missing-options)))
+    (setq scanner--available-switches opts)
+    (setq scanner--missing-switches
+	  (-difference scanner--device-specific-switches opts))
+    (list scanner--available-switches scanner--missing-switches)))
 
-(defun scanner-detect-devices ()
+(defun scanner--detect-devices ()
   "Return a list of auto-detected scanning devices.
 
 Each entry of the list contains three elements: the SANE device
@@ -318,9 +318,9 @@ format.  TYPE is either ‘:image’ or ‘:doc’.
 When scanning documents (type :doc), the format argument is used
 for the intermediate representation before conversion to the
 document format.  If any of the required options from
-‘scanner--device-specific-options’ are unavailable, they are
+‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
-  (let ((opts scanner--available-options))
+  (let ((opts scanner--available-switches))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
 		    (-when-let (fmt (or img-fmt
@@ -341,7 +341,7 @@ simply dropped."
 						  (plist-get
 						   scanner-resolution
 						   type))))
-		    scanner-scanimage-options))))
+		    scanner-scanimage-switches))))
 
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
@@ -351,7 +351,7 @@ selected output options, see ‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
 		  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
 		  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
-		  scanner-tesseract-options
+		  scanner-tesseract-switches
 		  scanner-tesseract-outputs)))
 
 (defconst scanner--image-extensions
@@ -393,7 +393,7 @@ availability of required options."
 	      ((eql 1 num-devices)
 	       (setq scanner-device-name (caar scanner--detected-devices)))
 	      (t (scanner-select-device)))))
-    (scanner--check-device-options)))
+    (scanner--check-device-switches)))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
