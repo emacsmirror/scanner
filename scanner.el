@@ -27,8 +27,32 @@
 
 ;;; Commentary:
 
-;; Scan documents and images using scanimage(1) from the SANE distribution
-;; and tesseract(1) for OCR.
+;; Scan documents and images using scanimage(1) from the SANE distribution and
+;; tesseract(1) for OCR.
+;;
+;; In image mode, one scan is performed with customizable resolution and file
+;; format.  An image scan is started with the command ‘scanner-scan-image’.
+;; This function tries to guess the file format from the chosen file name or
+;; falls back to the configured default.
+;;
+;; In document mode, one or multiple pages can be scanned that are then
+;; written in a customizable output format, e.g. PDF (searchable) or text.
+;; Resolution, intermediate image format and paper size are customizable as
+;; well.  A document scan is started with the command ‘scanner-scan-document’;
+;; without a prefix argument, one page is scanned.  With a non-numeric
+;; argument, the user is asked after each scanned page for confirmation to
+;; scan another page.  With a numeric argument, that many pages are scanned.
+;; In the latter mode, a delay customizable using ‘scanner-scan-delay’ is
+;; observed between scans.
+;;
+;; As a backend, tesseract(1) is used for document scans to provide optical
+;; character recognition (OCR).  The languages to use can be customized.
+;;
+;; For both images and documents, the scan mode (e.g. "Color" or "Gray") can
+;; be customized, if the used scanner supports it.
+;;
+;; Additional options can be passed to the backends using the customization
+;; variables ‘scanner-scanimage-switches’ and ‘scanner-tesseract-switches’.
 
 ;;; Code:
 
@@ -42,7 +66,7 @@
 
 (defcustom scanner-resolution
   '(:image 600 :doc 300)
-  "Default resolutions for images and documents."
+  "Resolutions for images and documents."
   :type '(plist :value-type number))
 
 (defcustom scanner-paper-sizes
@@ -67,7 +91,7 @@ the second is the height in mm."
 
 (defcustom scanner-doc-papersize
   :a4
-  "Default document paper size.
+  "Document paper size.
 The value must be one of the keys in the paper sizes list."
   :type '(restricted-sexp :match-alternatives
 			  ((lambda (k) (plist-member scanner-paper-sizes k)))))
@@ -102,7 +126,7 @@ The value must be one of the keys in the paper sizes list."
       widget)))
 
 (defcustom scanner-tesseract-languages
-  '("deu")
+  '("eng")
   "List of languages passed to tesseract(1) for OCR."
   :type '(repeat :validate scanner--validate-languages string))
 
@@ -141,6 +165,7 @@ If nil, auto-detection will be attempted."
   "Delay between document scans in multi-page mode."
   :type '(number))
 
+
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
     (define-key map [languages]
@@ -173,6 +198,7 @@ If nil, auto-detection will be attempted."
 (define-key-after menu-bar-tools-menu [scanner]
   (list 'menu-item "Scanner" scanner-menu))
 
+
 (defvar scanner--detected-devices
   nil
   "List of devices detected by SANE.
