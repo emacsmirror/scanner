@@ -321,12 +321,6 @@ selected output options, see ‘scanner-tesseract-outputs’."
     (or (cdr (assoc ext scanner--image-extensions))
 	(plist-get scanner-image-format :image))))
 
-(defun scanner--sentinel (process event)
-  ""
-  (let ((ev (string-trim event)))
-    (unless (string= "finished" ev)
-      (message "%s: %s" process ev))))
-
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
 If no scanning device has been configured or the configured
@@ -473,9 +467,13 @@ available, ask for a selection interactively."
 		    img-file
 		  (concat (file-name-sans-extension img-file) "." fmt)))
 	 (args (scanner--scanimage-args fname :image fmt)))
-    (make-process :name "Scanner (scanimage)"
-		  :command `(,scanner-scanimage-program ,@args)
-		  :sentinel #'scanner--sentinel)))
+    (cl-labels ((sentinel (process event)
+			  (let ((ev (string-trim event)))
+			    (unless (string= "finished" ev)
+			      (error "%s: %s" process ev)))))
+     (make-process :name "Scanner (scanimage)"
+		   :command `(,scanner-scanimage-program ,@args)
+		   :sentinel #'sentinel))))
 
 (provide 'scanner)
 
