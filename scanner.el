@@ -136,6 +136,38 @@ If nil, auto-detection will be attempted."
   :type '(restricted-sexp :match-alternatives
 			  (stringp 'nil)))
 
+(defvar scanner-menu
+  (let ((map (make-sparse-keymap)))
+    (define-key map [languages]
+      '(menu-item "Select languages" scanner-select-languages
+		  :key-sequence nil
+		  :help "Select languages for OCR."))
+    (define-key map [papersize]
+      '(menu-item "Select paper size" scanner-select-papersize
+		  :key-sequence nil
+		  :help "Select a paper size for document scanning."))
+    (define-key map [img-res]
+      '(menu-item "Set image resolution" scanner-set-image-resolution
+		  :key-sequence nil
+		  :help "Set the resolution for image scanning."))
+    (define-key map [doc-res]
+      '(menu-item "Set document resolution" scanner-set-document-resolution
+		  :key-sequence nil
+		  :help "Set the resolution for document scanning."))
+    (define-key map [seperator]
+      '(menu-item "--"))
+    (define-key map [image]
+      '(menu-item "Scan an image" scanner-scan-image
+		  :key-sequence nil))
+    (define-key map [document]
+      '(menu-item "Scan a document" scanner-scan-document
+		  :key-sequence nil))
+    map)
+  "The scanner menu map.")
+
+(define-key-after menu-bar-tools-menu [scanner]
+  (list 'menu-item "Scanner" scanner-menu))
+
 (defvar scanner--detected-devices
   nil
   "List of devices detected by SANE.
@@ -199,6 +231,37 @@ name, the device type, and the vendor and model names."
     (setq scanner--detected-devices
 	  (--filter (eql 3 (length it))
 		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
+
+(defun scanner-select-papersize ()
+  "Select the papersize for document scanning."
+  (interactive)
+  (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
+					       (substring (symbol-name x) 1)))
+				   scanner-paper-sizes))))
+    (setq scanner-doc-papersize
+	  (intern (concat ":" (completing-read "Papersize: " choices nil t))))))
+
+(defun scanner-select-languages ()
+  "Select languages for optical character recognition."
+  (interactive)
+  (let ((langs (cdr (process-lines scanner-tesseract-program
+				   "--list-langs"))))
+    (setq scanner-tesseract-languages
+	  (completing-read-multiple "Languages: " langs nil t))))
+
+(defun scanner--set-resolution (type res)
+  "Set the resolution for scanning TYPE :image or :doc to RES."
+  (plist-put scanner-resolution type res))
+
+(defun scanner-set-image-resolution ()
+  "Set the resolution for scanning images."
+  (interactive)
+  (scanner--set-resolution :image (read-number "Image scan resolution: " 600)))
+
+(defun scanner-set-document-resolution ()
+  "Set the resolution for scanning documents."
+  (interactive)
+  (scanner--set-resolution :doc (read-number "Document scan resolution: " 300)))
 
 (defun scanner-select-device (&optional detect)
   "Select a scanning device, maybe running auto-detection.
