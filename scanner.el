@@ -262,54 +262,6 @@ name, the device type, and the vendor and model names."
 	  (--filter (eql 3 (length it))
 		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
 
-(defun scanner-select-papersize ()
-  "Select the papersize for document scanning."
-  (interactive)
-  (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
-					       (substring (symbol-name x) 1)))
-				   scanner-paper-sizes))))
-    (setq scanner-doc-papersize
-	  (intern (concat ":" (completing-read "Papersize: " choices nil t))))))
-
-(defun scanner-select-languages ()
-  "Select languages for optical character recognition."
-  (interactive)
-  (let ((langs (cdr (process-lines scanner-tesseract-program
-				   "--list-langs"))))
-    (setq scanner-tesseract-languages
-	  (completing-read-multiple "Languages: " langs nil t))))
-
-(defun scanner-set-image-resolution (resolution)
-  "Set the RESOLUTION for scanning images."
-  (interactive "NImage scan resolution: ")
-  (plist-put scanner-resolution :image resolution))
-
-(defun scanner-set-document-resolution (resolution)
-  "Set the RESOLUTION for scanning documents."
-  (interactive "NDocument scan resolution: ")
-  (plist-put scanner-resolution :doc resolution))
-
-(defun scanner-select-device (&optional detect)
-  "Select a scanning device, maybe running auto-detection.
-If DETECT is non-nil or a prefix argument is supplied, force
-auto-detection.  Without an argument, auto-detect only if
-no devices have been detected yet.
-
-The selected device will be used for any future scan until a new
-selection is made."
-  (interactive "P")
-  (let* ((devices (if detect
-		      (scanner-detect-devices)
-		    (or scanner--detected-devices
-			(scanner-detect-devices))))
-	 (choices (mapcar (lambda (dev)
-			    (concat (caddr dev) " (" (car dev) ")"))
-			  devices)))
-    (setq scanner-device-name
-	  (cadr (split-string
-		 (completing-read "Select scanning device: " choices nil t)
-		 "(" t ")")))))
-
 (defun scanner--scanimage-args (outfile type &optional img-fmt)
   "Construct the argument list for scanimage(1).
 OUTFILE is the output filename and IMG-FMT is the output image
@@ -387,13 +339,62 @@ availability of required options."
 				t)
 			       (t nil))))
     (when need-autodetect
-      (let ((num-devices (length (scanner-detect-devices))))
+      (let ((num-devices (length (scanner--detect-devices))))
 	(cond ((eql 0 num-devices)
 	       (user-error "No scanning device was found"))
 	      ((eql 1 num-devices)
 	       (setq scanner-device-name (caar scanner--detected-devices)))
 	      (t (scanner-select-device)))))
     (scanner--check-device-switches)))
+
+
+(defun scanner-select-papersize ()
+  "Select the papersize for document scanning."
+  (interactive)
+  (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
+					       (substring (symbol-name x) 1)))
+				   scanner-paper-sizes))))
+    (setq scanner-doc-papersize
+	  (intern (concat ":" (completing-read "Papersize: " choices nil t))))))
+
+(defun scanner-select-languages ()
+  "Select languages for optical character recognition."
+  (interactive)
+  (let ((langs (cdr (process-lines scanner-tesseract-program
+				   "--list-langs"))))
+    (setq scanner-tesseract-languages
+	  (completing-read-multiple "Languages: " langs nil t))))
+
+(defun scanner-set-image-resolution (resolution)
+  "Set the RESOLUTION for scanning images."
+  (interactive "NImage scan resolution: ")
+  (plist-put scanner-resolution :image resolution))
+
+(defun scanner-set-document-resolution (resolution)
+  "Set the RESOLUTION for scanning documents."
+  (interactive "NDocument scan resolution: ")
+  (plist-put scanner-resolution :doc resolution))
+
+(defun scanner-select-device (&optional detect)
+  "Select a scanning device, maybe running auto-detection.
+If DETECT is non-nil or a prefix argument is supplied, force
+auto-detection.  Without an argument, auto-detect only if
+no devices have been detected yet.
+
+The selected device will be used for any future scan until a new
+selection is made."
+  (interactive "P")
+  (let* ((devices (if detect
+		      (scanner--detect-devices)
+		    (or scanner--detected-devices
+			(scanner--detect-devices))))
+	 (choices (mapcar (lambda (dev)
+			    (concat (caddr dev) " (" (car dev) ")"))
+			  devices)))
+    (setq scanner-device-name
+	  (cadr (split-string
+		 (completing-read "Select scanning device: " choices nil t)
+		 "(" t ")")))))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
