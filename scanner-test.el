@@ -79,7 +79,7 @@
 (ert-deftest scanner-test-scanimage-args ()
   "Test the argument list construction for scanimage."
   ;; minimum args list (no required options)
-  (let ((scanner--available-options nil)
+  (let ((scanner--available-switches nil)
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-device-name "devname"))
     (should (cl-subsetp '("-d" "devname") (scanner--scanimage-args "file"
@@ -105,7 +105,7 @@
 							       :image)))
       (should-not (member "-d" (scanner--scanimage-args "file" :image)))))
   ;; image args list (present/missing args)
-  (let ((scanner--available-options '("--resolution" "-x" "-y" "--mode"))
+  (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
@@ -128,7 +128,7 @@
 			:test #'string=))
     )
   ;; doc args list (present/missing args)
-  (let ((scanner--available-options '("--resolution" "-x" "-y" "--mode"))
+  (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
@@ -156,7 +156,7 @@
   "Test the argument list construction for tesseract."
   (let ((scanner-resolution '(:image 600 :doc 300))
 	(scanner-tesseract-languages '("eng" "deu"))
-	(scanner-tesseract-options '("--opt1" "--opt2"))
+	(scanner-tesseract-switches '("--opt1" "--opt2"))
 	(scanner-tesseract-outputs '("out1" "out2")))
     (should (cl-subsetp '("-l" "eng+deu") (scanner--tesseract-args "infile"
 								   "outfile")
