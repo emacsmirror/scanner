@@ -43,5 +43,4 @@ check: $(EL:.el=.elc) $(TEST:.el=.elc)
 	-f ert-run-tests-batch-and-exit
 
 run: $(EL:.el=.elc)
-	$(EMACS) -Q -L . $(LDFLAGS) --eval "(load \"scannner\")" 	\
-	--eval "(scan-blah)" &
+	$(EMACS) -Q -L . $(LDFLAGS) -l scanner.el &
