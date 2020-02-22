@@ -110,12 +110,12 @@ The value must be one of the keys in the paper sizes list."
 
 (defcustom scanner-scanimage-program
   (executable-find "scanimage")
-  "Path of the scanimage(1) program."
+  "Path and file name of the scanimage(1) program."
   :type '(string))
 
 (defcustom scanner-tesseract-program
   (executable-find "tesseract")
-  "Path of the tesseract(1) program."
+  "Path and file name of the tesseract(1) program."
   :type '(string))
 
 (defun scanner--validate-languages (widget)
@@ -152,7 +152,9 @@ The config files may reside in ‘/usr/share/tessdata/configs’."
 
 (defcustom scanner-scan-mode
   '(:image "Color" :doc "Color")
-  "Scan modes for images and documents."
+  "Scan modes for images and documents.
+This is usually \"Color\" or \"Gray\", but depends on your
+scanning device."
   :type '(plist :value-type string))
 
 (defcustom scanner-scanimage-switches
@@ -162,8 +164,8 @@ The config files may reside in ‘/usr/share/tessdata/configs’."
 
 (defcustom scanner-device-name
   nil
-  "SANE scanner device name or nil.
-If nil, auto-detection will be attempted."
+  "SANE scanning device name or nil.
+If nil, attempt auto-detection."
   :type '(restricted-sexp :match-alternatives
 			  (stringp 'nil)))
 
@@ -243,7 +245,8 @@ This function checks the SANE backend of the device selected by
 ‘scanner-device-name’ is nil, it attempts auto-detection.  The
 return value is a list comprising a list of the available options
 and a list of the missing options.  As a side effect, these
-results are cached."
+results are cached in ‘scanner--available-switches’ and
+‘scanner--missing-switches’."
   (let ((-compare-fn #'string=)
 	opts)
     (with-temp-buffer
@@ -274,9 +277,9 @@ name, the device type, and the vendor and model names."
 OUTFILE is the output filename and IMG-FMT is the output image
 format.  TYPE is either ‘:image’ or ‘:doc’.
 
-When scanning documents (type :doc), the format argument is used
-for the intermediate representation before conversion to the
-document format.  If any of the required options from
+When scanning documents (type :doc), scanner uses the IMG-FMT
+argument for the intermediate representation before conversion to
+the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
   (let ((opts scanner--available-switches))
@@ -305,8 +308,9 @@ simply dropped."
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
 INPUT is the input file name, OUTPUT-BASE is the basename for the
-output files.  Extensions are added automatically depending on the
-selected output options, see ‘scanner-tesseract-outputs’."
+output files.  Note that tesseract automatically adds file name
+extensions depending on the selected output options, see
+‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
 		  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
 		  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
@@ -399,16 +403,17 @@ selection is made."
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
-  "Scan a number of NPAGES and write to a document named FILENAME.
+  "Scan NPAGES pages and write the result to FILENAME.
 Without a prefix argument, scan one page.  With a non-numeric
 prefix argument, i.e. ‘\\[universal-argument]
 \\[scanner-scan-document]’, scan a page and ask the user for
 confirmation to scan another page, etc.  With a numeric prefix
 argument, e.g. ‘\\[universal-argument] 3
-\\[scanner-scan-document]’, scan that many pages.
+\\[scanner-scan-document]’, scan that many pages (in this case,
+3).
 
 If ‘scanner-device-name’ is nil or this device is unavailable,
-attempt auto-detection.  If more than one scanning devices are
+attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFDocument file name: ")
   (scanner--ensure-init)
@@ -471,9 +476,9 @@ available, ask for a selection interactively."
 
 ;;;###autoload
 (defun scanner-scan-image (img-file)
-  "Scan an image, reading the file name IMG-FILE interactively.
+  "Scan an image, and write the result to IMG-FILE.
 If ‘scanner-device-name’ is nil or this device is unavailable,
-attempt auto-detection.  If more than one scanning devices are
+attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "FImage file name: ")
   (scanner--ensure-init)
