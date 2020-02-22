@@ -350,57 +350,66 @@ availability of required options."
 	       (user-error "No scanning device was found"))
 	      ((eql 1 num-devices)
 	       (setq scanner-device-name (caar scanner--detected-devices)))
-	      (t (scanner-select-device)))))
+	      (t (call-interactively #'scanner-select-device)))))
     (scanner--check-device-switches)))
 
 
-(defun scanner-select-papersize ()
-  "Select the papersize for document scanning."
-  (interactive)
-  (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
-					       (substring (symbol-name x) 1)))
-				   scanner-paper-sizes))))
-    (setq scanner-doc-papersize
-	  (intern (concat ":" (completing-read "Papersize: " choices nil t))))))
+(defun scanner-select-papersize (size)
+  "Select the papersize SIZE for document scanning."
+  (interactive
+   (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
+					   (substring (symbol-name x) 1)))
+				    scanner-paper-sizes))))
+     (list (intern (concat ":"
+			   (completing-read "Papersize: " choices nil t))))))
+  (unless (plist-member scanner-paper-sizes size)
+    (signal 'args-out-of-range `(,size)))
+  (setq scanner-doc-papersize size))
 
-(defun scanner-select-languages ()
-  "Select languages for optical character recognition."
-  (interactive)
-  (let ((langs (cdr (process-lines scanner-tesseract-program
-				   "--list-langs"))))
-    (setq scanner-tesseract-languages
-	  (completing-read-multiple "Languages: " langs nil t))))
+(defun scanner-select-languages (languages)
+  "Select LANGUAGES for optical character recognition."
+  (interactive
+   (let ((langs (cdr (process-lines scanner-tesseract-program
+				    "--list-langs"))))
+     (list (completing-read-multiple "Languages: " langs nil t))))
+  (unless (consp languages)
+    (signal 'wrong-type-argument `(consp ,languages)))
+  (setq scanner-tesseract-languages languages))
 
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
   (interactive "NImage scan resolution: ")
+  (unless (numberp resolution)
+    (signal 'wrong-type-argument `(numberp ,resolution)))
   (plist-put scanner-resolution :image resolution))
 
 (defun scanner-set-document-resolution (resolution)
   "Set the RESOLUTION for scanning documents."
   (interactive "NDocument scan resolution: ")
+  (unless (numberp resolution)
+    (signal 'wrong-type-argument `(numberp ,resolution)))
   (plist-put scanner-resolution :doc resolution))
 
-(defun scanner-select-device (&optional detect)
-  "Select a scanning device, maybe running auto-detection.
-If DETECT is non-nil or a prefix argument is supplied, force
-auto-detection.  Without an argument, auto-detect only if
-no devices have been detected yet.
+(defun scanner-select-device (device)
+  "Select a scanning DEVICE.
+If a prefix argument is supplied, force auto-detection.
+Otherwise, auto-detect only if no devices have been detected
+previously.
 
 The selected device will be used for any future scan until a new
 selection is made."
-  (interactive "P")
-  (let* ((devices (if detect
-		      (scanner--detect-devices)
-		    (or scanner--detected-devices
-			(scanner--detect-devices))))
-	 (choices (mapcar (lambda (dev)
-			    (concat (caddr dev) " (" (car dev) ")"))
-			  devices)))
-    (setq scanner-device-name
-	  (cadr (split-string
-		 (completing-read "Select scanning device: " choices nil t)
-		 "(" t ")")))))
+  (interactive
+   (let* ((devices (if current-prefix-arg
+		       (scanner--detect-devices)
+		     (or scanner--detected-devices
+			 (scanner--detect-devices))))
+	  (choices (mapcar (lambda (dev)
+			     (concat (caddr dev) " (" (car dev) ")"))
+			   devices)))
+     (list (cadr (split-string
+		  (completing-read "Select scanning device: " choices nil t)
+		  "(" t ")")))))
+  (setq scanner-device-name device))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
