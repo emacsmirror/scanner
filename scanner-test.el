@@ -213,6 +213,16 @@
     (ignore-errors
       (should (equal '("eng") (scanner-select-languages 42))))))
 
+(ert-deftest scanner-test-select-outputs ()
+  "Test the output selection command."
+  (let ((scanner-tesseract-outputs '("pdf")))
+    (should (equal '("txt") (scanner-select-outputs '("txt"))))
+    (should (equal '("pdf" "txt") (scanner-select-outputs '("pdf" "txt"))))
+    (should-error (scanner-select-outputs 42)
+		  :type 'wrong-type-argument)
+    (ignore-errors
+      (should (equal '("pdf") (scanner-select-outputs 42))))))
+
 (provide 'scanner-test)
 
 

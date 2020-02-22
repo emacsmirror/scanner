@@ -137,13 +137,32 @@ The value must be one of the keys in the paper sizes list."
   "List of languages passed to tesseract(1) for OCR."
   :type '(repeat :validate scanner--validate-languages string))
 
+(defcustom scanner-tesseract-configdir
+  "/usr/share/tessdata/configs/"
+  "Config file directory for tesseract."
+  :type '(string))
+
+(defun scanner--validate-outputs (widget)
+  "Validate the output selection in customization WIDGET."
+  (let ((val (widget-value widget))
+	(configs (directory-files scanner-tesseract-configdir nil "[^.]")))
+    (if (cl-subsetp val configs :test #'string=)
+	nil
+      (widget-put widget
+		  :error
+		  (format "Unknown output(s): %s; available are: %s"
+			  (mapconcat #'identity val ", ")
+			  (mapconcat #'identity configs ", ")))
+      widget)))
+
+
 (defcustom scanner-tesseract-outputs
   '("pdf" "txt")
   "List of output formats to produce.
 The output formats correspond to the names of config files that
-come with tesseract(1).
-The config files may reside in ‘/usr/share/tessdata/configs’."
-  :type '(repeat string))
+come with tesseract(1).  The config files are assumed to reside
+in ‘scanner-tesseract-configdir’."
+  :type '(repeat :validate scanner--validate-outputs string))
 
 (defcustom scanner-tesseract-switches
   '()
@@ -182,6 +201,10 @@ If nil, attempt auto-detection."
       '(menu-item "Select languages" scanner-select-languages
 		  :key-sequence nil
 		  :help "Select languages for OCR."))
+    (define-key map [outputs]
+      '(menu-item "Select document outputs" scanner-select-outputs
+		  :key-sequence nil
+		  :help "Select document output formats."))
     (define-key map [papersize]
       '(menu-item "Select paper size" scanner-select-papersize
 		  :key-sequence nil
@@ -379,6 +402,15 @@ availability of required options."
   (unless (consp languages)
     (signal 'wrong-type-argument `(consp ,languages)))
   (setq scanner-tesseract-languages languages))
+
+(defun scanner-select-outputs (outputs)
+  "Select OUTPUTS for tesseract."
+  (interactive
+   (let ((configs (directory-files scanner-tesseract-configdir nil "[^.]")))
+     (list (completing-read-multiple "Outputs: " configs nil t))))
+  (unless (consp outputs)
+    (signal 'wrong-type-argument `(consp ,outputs)))
+  (setq scanner-tesseract-outputs outputs))
 
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
