@@ -411,13 +411,17 @@ available, ask for a selection interactively."
 	(file-list '())
 	(fl-file nil))
     (cl-labels ((cleanup
+		 ()
+		 (and file-list (dolist (file file-list)
+				  (delete-file file)))
+		 (and fl-file (delete-file fl-file)))
+		(finish
 		 (process event)
-		 (let ((ev (string-trim event)))
-		   (unless (string= "finished" ev)
-		     (message "%s: %s" process ev))
-		   (dolist (file file-list)
-		     (delete-file file))
-		   (delete-file fl-file)))
+		 (unwind-protect
+		     (let ((ev (string-trim event)))
+		       (unless (string= "finished" ev)
+			 (error "%s: %s" process ev)))
+		   (cleanup)))
 		(tesseract
 		 ()
 		 (setq file-list (nreverse file-list))
@@ -429,19 +433,23 @@ available, ask for a selection interactively."
 		   (make-process :name "Scanner (tesseract)"
 				 :command `(,scanner-tesseract-program
 					    ,@tesseract-args)
-				 :sentinel #'cleanup)))
+				 :sentinel #'finish)))
 		(scan-or-finish
 		 (process event)
-		 (let ((ev (string-trim event)))
-		   (unless (string= "finished" ev)
-		     (error "%s: %s" process ev))
-		   (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
-					     (scanimage)
-					   (tesseract)))
-			 ((> num-pages 1)
-			  (cl-decf num-pages)
-			  (run-at-time scanner-scan-delay nil #'scanimage))
-			 (t (tesseract)))))
+		 (condition-case err
+		     (let ((ev (string-trim event)))
+		       (unless (string= "finished" ev)
+			 (error "%s: %s" process ev))
+		       (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
+						 (scanimage)
+					       (tesseract)))
+			     ((> num-pages 1)
+			      (cl-decf num-pages)
+			      (run-at-time scanner-scan-delay nil #'scanimage))
+			     (t (tesseract))))
+		   (error
+		    (cleanup)
+		    (signal (car err) (cdr err)))))
 		(scanimage
 		 ()
 		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
