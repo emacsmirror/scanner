@@ -171,6 +171,47 @@
     (should (member "out1" (scanner--tesseract-args "infile" "outfile")))
     (should (member "out2" (scanner--tesseract-args "infile" "outfile")))))
 
+;; Note: interactive commands are only tested for their non-interactive
+;; behavior
+(ert-deftest scanner-test-set-image-resolution ()
+  "Test the image resolution setter."
+  (let ((scanner-resolution '(:image 600 :doc 600)))
+    (should (eql 300 (progn (scanner-set-image-resolution 300)
+			    (plist-get scanner-resolution :image))))
+    (should (eql 600 (progn (scanner-set-image-resolution 300)
+			    (plist-get scanner-resolution :doc))))
+    (should-error (scanner-set-image-resolution nil)
+		  :type 'wrong-type-argument)))
+
+(ert-deftest scanner-test-set-document-resolution ()
+  "Test the document resolution setter."
+  (let ((scanner-resolution '(:image 600 :doc 600)))
+    (should (eql 600 (progn (scanner-set-document-resolution 300)
+			    (plist-get scanner-resolution :image))))
+    (should (eql 300 (progn (scanner-set-document-resolution 300)
+			    (plist-get scanner-resolution :doc))))
+    (should-error (scanner-set-document-resolution nil)
+		  :type 'wrong-type-argument)))
+
+(ert-deftest scanner-test-select-papersize ()
+  "Test the papersize selection command."
+  (let ((scanner-paper-sizes '(:a4 (210 297) :a5 (148 210)))
+	(scanner-doc-papersize :a5))
+    (should (eq :a4 (scanner-select-papersize :a4)))
+    (should-error (scanner-select-papersize :wrdlbrmpft)
+		  :type 'args-out-of-range)
+    (ignore-errors
+      (should (eq :a5 (scanner-select-papersize :wrdlbrmpft))))))
+
+(ert-deftest scanner-test-select-languages ()
+  "Test the language selection command."
+  (let ((scanner-tesseract-languages '("eng")))
+    (should (equal '("deu") (scanner-select-languages '("deu"))))
+    (should (equal '("deu" "eng") (scanner-select-languages '("deu" "eng"))))
+    (should-error (scanner-select-languages 42)
+		  :type 'wrong-type-argument)
+    (ignore-errors
+      (should (equal '("eng") (scanner-select-languages 42))))))
 
 (provide 'scanner-test)
 
