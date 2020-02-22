@@ -54,7 +54,7 @@
 ;; customizable using ‘scanner-scan-delay’.
 ;;
 ;; For both images and documents, you can customize the scan mode
-;; (e.g. "Color" or "Gray") if your scanner supports it.
+;; (e.g. "Color" or "Gray") if your scanning device supports it.
 ;;
 ;; Finally, you can pass additional options to the backends using the
 ;; customization variables ‘scanner-scanimage-switches’ and
@@ -237,7 +237,6 @@ not work as expected."))
 (defvar scanner--missing-switches
   nil
   "List of required options missing from the device backend.")
-
 
 (defun scanner--check-device-switches ()
   "Return available and missing options provided by the device.
