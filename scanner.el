@@ -175,6 +175,7 @@ If nil, attempt auto-detection."
   :type '(number))
 
 
+;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
     (define-key map [languages]
@@ -204,6 +205,7 @@ If nil, attempt auto-detection."
     map)
   "The scanner menu map.")
 
+;;;###autoload
 (define-key-after menu-bar-tools-menu [scanner]
   (list 'menu-item "Scanner" scanner-menu))
 
