@@ -207,7 +207,7 @@ DEVICE is the SANE device name, TYPE the type of the device
 \(e.g.  \"flatbed scanner\",) and MODEL is the device's model
 name.")
 
-(eval-when-compile
+(eval-and-compile
   (defconst scanner--device-specific-switches
     '("--mode" "--depth" "--resolution" "-x" "-y")
     "List of required device specific options.
