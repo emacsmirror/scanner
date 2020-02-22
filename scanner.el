@@ -194,6 +194,10 @@ If nil, attempt auto-detection."
       '(menu-item "Set document resolution" scanner-set-document-resolution
 		  :key-sequence nil
 		  :help "Set the resolution for document scanning."))
+    (define-key map [select-dev]
+      '(menu-item "Select scanning device" scanner-select-device
+		  :key-sequence nil
+		  :help "Select a scanning device."))
     (define-key map [seperator]
       '(menu-item "--"))
     (define-key map [image]
