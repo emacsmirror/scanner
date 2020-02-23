@@ -526,25 +526,54 @@ available, ask for a selection interactively."
       (scanimage))))
 
 ;;;###autoload
-(defun scanner-scan-image (img-file)
-  "Scan an image, and write the result to IMG-FILE.
+(defun scanner-scan-image (nscans filename)
+  "Scan NSCANS images, and write the result to FILENAME.
+Without a prefix argument, scan one image.  With a non-numeric
+prefix argument, i.e. ‘\\[universal-argument]
+\\[scanner-scan-document]’, scan an image and ask the user for
+confirmation to scan another image, etc.  With a numeric prefix
+argument, e.g. ‘\\[universal-argument] 3
+\\[scanner-scan-document]’, scan that many images (in this case,
+3).
+
 If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
-  (interactive "FImage file name: ")
+  (interactive "P\nFImage file name: ")
   (scanner--ensure-init)
-  (let* ((fmt (scanner--determine-image-format img-file))
-	 (fname (if (file-name-extension img-file)
-		    img-file
-		  (concat (file-name-sans-extension img-file) "." fmt)))
-	 (args (scanner--scanimage-args fname :image fmt)))
-    (cl-labels ((sentinel (process event)
-			  (let ((ev (string-trim event)))
-			    (unless (string= "finished" ev)
-			      (error "%s: %s" process ev)))))
-     (make-process :name "Scanner (scanimage)"
-		   :command `(,scanner-scanimage-program ,@args)
-		   :sentinel #'sentinel))))
+  (let* ((fmt (scanner--determine-image-format filename))
+	 (fname-base (file-name-sans-extension filename))
+	 (fname-ext (if (file-name-extension filename)
+			(file-name-extension filename t)
+		      (concat "." fmt)))
+	 (num-scans (prefix-numeric-value nscans))
+	 (page-count 1))
+    (cl-labels ((scan-or-finish
+		 (process event)
+		 (let ((ev (string-trim event)))
+		   (unless (string= "finished" ev)
+		     (error "%s: %s" process ev))
+		   (cond ((consp nscans) (when (y-or-n-p "Scan another page? ")
+					   (scanimage t)))
+			 ((> num-scans 1)
+			  (cl-decf num-scans)
+			  (run-at-time scanner-scan-delay nil #'scanimage t)))))
+		(scanimage
+		 (multi-scan)
+		 (let* ((img-file (if multi-scan
+				      (prog1
+					  (concat fname-base "-"
+						  (number-to-string page-count)
+						  fname-ext)
+					(cl-incf page-count))
+				    (concat fname-base fname-ext)))
+			(scanimage-args (scanner--scanimage-args img-file
+								 :image fmt)))
+		   (make-process :name "Scanner (scanimage)"
+				 :command `(,scanner-scanimage-program
+					    ,@scanimage-args)
+				 :sentinel #'scan-or-finish))))
+      (scanimage (or (> num-scans 1) (consp nscans))))))
 
 (provide 'scanner)
 
