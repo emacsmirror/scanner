@@ -66,6 +66,7 @@
 (require 'dash)
 (require 'cl-lib)
 (require 'subr-x)
+(require 'menu-bar)
 
 (defgroup scanner nil
   "Scan documents and images."
