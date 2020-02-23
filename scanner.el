@@ -105,6 +105,11 @@ The value must be one of the keys in the paper sizes list."
   :type '(restricted-sexp :match-alternatives
 			  ((lambda (k) (plist-member scanner-paper-sizes k)))))
 
+(defcustom scanner-reverse-pages
+  nil
+  "If non-nil, reverse pages in document mode."
+  :type '(boolean))
+
 (defcustom scanner-image-format
   '(:image "jpeg" :doc "pnm")
   "Image file formats for images and documents (intermediate representation)."
@@ -488,7 +493,8 @@ available, ask for a selection interactively."
 		   (cleanup)))
 		(tesseract
 		 ()
-		 (setq file-list (nreverse file-list))
+		 (unless scanner-reverse-pages
+		   (setq file-list (nreverse file-list)))
 		 (setq fl-file (make-temp-file "scanlist" nil ".txt"
 					       (mapconcat #'identity
 							  file-list
