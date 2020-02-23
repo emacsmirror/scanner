@@ -401,6 +401,8 @@ availability of required options."
      (list (completing-read-multiple "Languages: " langs nil t))))
   (unless (consp languages)
     (signal 'wrong-type-argument `(consp ,languages)))
+  (unless (cl-every #'stringp languages)
+    (signal 'wrong-type-argument `(stringp ,@languages)))
   (setq scanner-tesseract-languages languages))
 
 (defun scanner-select-outputs (outputs)
@@ -410,6 +412,8 @@ availability of required options."
      (list (completing-read-multiple "Outputs: " configs nil t))))
   (unless (consp outputs)
     (signal 'wrong-type-argument `(consp ,outputs)))
+  (unless (cl-every #'stringp outputs)
+    (signal 'wrong-type-argument `(stringp ,@outputs)))
   (setq scanner-tesseract-outputs outputs))
 
 (defun scanner-set-image-resolution (resolution)

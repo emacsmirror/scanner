@@ -210,6 +210,8 @@
     (should (equal '("deu" "eng") (scanner-select-languages '("deu" "eng"))))
     (should-error (scanner-select-languages 42)
 		  :type 'wrong-type-argument)
+    (should-error (scanner-select-languages '("eng" 42))
+		  :type 'wrong-type-argument)
     (ignore-errors
       (should (equal '("eng") (scanner-select-languages 42))))))
 
@@ -219,6 +221,8 @@
     (should (equal '("txt") (scanner-select-outputs '("txt"))))
     (should (equal '("pdf" "txt") (scanner-select-outputs '("pdf" "txt"))))
     (should-error (scanner-select-outputs 42)
+		  :type 'wrong-type-argument)
+    (should-error (scanner-select-outputs '("pdf" 42))
 		  :type 'wrong-type-argument)
     (ignore-errors
       (should (equal '("pdf") (scanner-select-outputs 42))))))
