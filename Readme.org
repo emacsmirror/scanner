@@ -12,10 +12,6 @@
   recognition (OCR).  You can select the language plugins with
   ~scanner-tesseract-languages~.
 
-  The ~scanner-scan-image~ command performs one scan in image mode.  This
-  function tries to guess the file format from the chosen file name or falls
-  back to the configured default, see ~scanner-image-format~.
-
   In document mode, you can scan one or multiple pages that are then written
   in a customizable output format, e.g. (searchable) PDF or text, or whatever
   tesseract provides.  You can also customize resolution, intermediate image
@@ -25,6 +21,11 @@
   confirmation to scan another page.  With a numeric argument, it scans that
   many pages.  In the latter case, it observes a delay between scans that is
   customizable using ~scanner-scan-delay~.
+
+  The ~scanner-scan-image~ command performs one scan or multiple scans in
+  image mode.  This function tries to guess the file format from the chosen
+  file name or falls back to the configured default, see
+  ~scanner-image-format~.  The prefix argument works as in document mode.
 
   For both images and documents, you can customize the scan mode (e.g. "Color"
   or "Gray") if your scanning device supports it.
