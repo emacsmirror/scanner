@@ -107,6 +107,11 @@ The value must be one of the keys in the paper sizes list."
   :type '(restricted-sexp :match-alternatives
 			  ((lambda (k) (plist-member scanner-paper-sizes k)))))
 
+(defcustom scanner-image-size
+  '(200 250)
+  "Image size as list of (width height) in mm or nil."
+  :type '(list number number))
+
 (defcustom scanner-reverse-pages
   nil
   "If non-nil, reverse pages in document mode."
@@ -319,8 +324,10 @@ argument for the intermediate representation before conversion to
 the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
-  (let ((size (when (eq :doc type)
-		(plist-get scanner-paper-sizes scanner-doc-papersize))))
+  (let ((size (cond ((eq :doc type)
+		     (plist-get scanner-paper-sizes scanner-doc-papersize))
+		    ((eq :image type) scanner-image-size)
+		    (t nil))))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
 		    (-when-let (fmt (or img-fmt

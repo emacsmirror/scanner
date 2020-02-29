@@ -46,8 +46,6 @@
 
 
 ;;; Code:
-
-(load-file "scanner.el")
 (require 'scanner)
 (require 'dash)
 (require 'ert)
@@ -78,6 +76,7 @@
   (let ((scanner--available-switches nil)
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-device-name "devname")
+	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     ;; known values are included with their switches
     (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args "file"
@@ -110,6 +109,7 @@
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
 	(scanner-doc-papersize :a4)
 	(scanner-paper-sizes '(:a4 (210 297)))
+	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image)))
     (should (-contains-p (scanner--scanimage-args "file" :image)
@@ -120,15 +120,9 @@
     (should (-contains-p (scanner--scanimage-args "file" :image)
 			 "--resolution=600"))
     (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc)))
-    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc))))
-  ;; doc args list with device specific args
-  (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
-	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
-	(scanner-resolution '(:doc 300 :image 600))
-	(scanner-scan-mode '(:image "Color" :doc "Gray"))
-	(scanner-doc-papersize :a4)
-	(scanner-paper-sizes '(:a4 (210 297)))
-	(-compare-fn #'string=))
+    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc)))
+    (should (-is-infix-p '("-x" "200") (scanner--scanimage-args "file" :image)))
+    (should (-is-infix-p '("-y" "250") (scanner--scanimage-args "file" :image)))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc)))
     (should (-contains-p (scanner--scanimage-args "file" :doc)
 			 "--format=fmt-doc"))
@@ -137,8 +131,9 @@
     (should (-contains-p (scanner--scanimage-args "file" :doc) "--mode=Gray"))
     (should (-contains-p (scanner--scanimage-args "file" :doc)
 			 "--resolution=300"))
-    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc)))
-    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc)))))
+    (let ((scanner-image-size nil))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-x"))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-y")))))
 
 
 (ert-deftest scanner-test-tesseract-args ()

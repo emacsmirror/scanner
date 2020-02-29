@@ -8,8 +8,8 @@
 EMACS = emacs
 EL = scanner.el
 TEST = scanner-test.el
-RUN_ENTRY = scanner.el
-TEST_ENTRY = scanner-test.el
+RUN_ENTRY = scanner.elc
+TEST_ENTRY = scanner-test.elc
 ELPA_EXT = dash
 LDFLAGS = -L ./dep/dash
 
