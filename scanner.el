@@ -69,6 +69,8 @@
 (require 'subr-x)
 (require 'menu-bar)
 
+
+;; customization
 (defgroup scanner nil
   "Scan documents and images."
   :group 'multimedia)
@@ -199,6 +201,7 @@ If nil, attempt auto-detection."
   :type '(number))
 
 
+;; menu
 ;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
@@ -242,6 +245,7 @@ If nil, attempt auto-detection."
   (list 'menu-item "Scanner" scanner-menu))
 
 
+;; internal variables and functions
 (defvar scanner--detected-devices
   nil
   "List of devices detected by SANE.
@@ -383,11 +387,12 @@ availability of required options."
   (scanner--check-device-switches))
 
 
+;; commands
 (defun scanner-select-papersize (size)
   "Select the papersize SIZE for document scanning."
   (interactive
    (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
-					   (substring (symbol-name x) 1)))
+						(substring (symbol-name x) 1)))
 				    scanner-paper-sizes))))
      (list (intern (concat ":"
 			   (completing-read "Papersize: " choices nil t))))))
