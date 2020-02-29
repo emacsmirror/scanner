@@ -370,20 +370,17 @@ extensions depending on the selected output options, see
 If no scanning device has been configured or the configured
 device is not available, attempt auto-detection.  Check for
 availability of required options."
-  (let ((need-autodetect (cond ((null scanner-device-name) t)
-			       ((< 0 (call-process scanner-scanimage-program
-						   nil nil nil "-n"
-						   "-d" scanner-device-name))
-				t)
-			       (t nil))))
-    (when need-autodetect
-      (let ((num-devices (length (scanner--detect-devices))))
-	(cond ((eql 0 num-devices)
-	       (user-error "No scanning device was found"))
-	      ((eql 1 num-devices)
-	       (setq scanner-device-name (caar scanner--detected-devices)))
-	      (t (call-interactively #'scanner-select-device)))))
-    (scanner--check-device-switches)))
+  (unless (and scanner-device-name
+	       (eql 0 (call-process scanner-scanimage-program
+				    nil nil nil "-n"
+				    "-d" scanner-device-name)))
+    (let ((num-devices (length (scanner--detect-devices))))
+      (cond ((eql 0 num-devices)
+	     (user-error "No scanning device was found"))
+	    ((eql 1 num-devices)
+	     (setq scanner-device-name (caar scanner--detected-devices)))
+	    (t (call-interactively #'scanner-select-device)))))
+  (scanner--check-device-switches))
 
 
 (defun scanner-select-papersize (size)
