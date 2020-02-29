@@ -364,7 +364,8 @@ extensions depending on the selected output options, see
   "List of known image filename extensions with aliases.")
 
 (defun scanner--determine-image-format (extension)
-  "Determine image file format from EXTENSION."
+  "Determine image file format from EXTENSION.
+If the extension is unknown, return the default format."
   (let ((ext (if extension (downcase extension) "")))
     (or (cdr (assoc ext scanner--image-extensions))
 	(plist-get scanner-image-format :image))))
