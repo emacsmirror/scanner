@@ -39,3 +39,4 @@
 * Bugs
 
   - This package doesn't support document feeders yet.
+  - This package doesn't support authentication.

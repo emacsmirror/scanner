@@ -130,8 +130,7 @@ The value must be one of the keys in the paper sizes list."
   (let ((val (widget-value widget))
 	(langs (cdr (process-lines scanner-tesseract-program
 				   "--list-langs"))))
-    (if (cl-subsetp val langs :test #'string=)
-	nil
+    (unless (cl-subsetp val langs :test #'string=)
       (widget-put widget
 		  :error
 		  (format "Unknown language(s): %s; available are: %s"
@@ -153,8 +152,7 @@ The value must be one of the keys in the paper sizes list."
   "Validate the output selection in customization WIDGET."
   (let ((val (widget-value widget))
 	(configs (directory-files scanner-tesseract-configdir nil "[^.]")))
-    (if (cl-subsetp val configs :test #'string=)
-	nil
+    (unless (cl-subsetp val configs :test #'string=)
       (widget-put widget
 		  :error
 		  (format "Unknown output(s): %s; available are: %s"
@@ -290,8 +288,8 @@ results are cached in ‘scanner--available-switches’ and
       (goto-char (point-min))
       (while (re-search-forward scanner--device-option-re nil t)
 	(push (match-string 1) opts)))
-    (setq scanner--available-switches opts)
-    (setq scanner--missing-switches
+    (setq scanner--available-switches opts
+	  scanner--missing-switches
 	  (-difference scanner--device-specific-switches opts))
     (list scanner--available-switches scanner--missing-switches)))
 
@@ -479,32 +477,17 @@ available, ask for a selection interactively."
 	(fmt (plist-get scanner-image-format :doc))
 	(file-list '())
 	(fl-file nil))
-    (cl-labels ((cleanup
+    (cl-labels ((scanimage
 		 ()
-		 (and file-list (dolist (file file-list)
-				  (delete-file file)))
-		 (and fl-file (delete-file fl-file)))
-		(finish
-		 (process event)
-		 (unwind-protect
-		     (let ((ev (string-trim event)))
-		       (unless (string= "finished" ev)
-			 (error "%s: %s" process ev)))
-		   (cleanup)))
-		(tesseract
-		 ()
-		 (unless scanner-reverse-pages
-		   (setq file-list (nreverse file-list)))
-		 (setq fl-file (make-temp-file "scanlist" nil ".txt"
-					       (mapconcat #'identity
-							  file-list
-							  "\n")))
-		 (let ((tesseract-args (scanner--tesseract-args fl-file doc-file)))
-		   (make-process :name "Scanner (tesseract)"
-				 :command `(,scanner-tesseract-program
-					    ,@tesseract-args)
-				 :sentinel #'finish)))
-		(scan-or-finish
+		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
+			(scanimage-args (scanner--scanimage-args img-file
+								 :doc fmt)))
+		   (push img-file file-list)
+		   (make-process :name "Scanner (scanimage)"
+				 :command `(,scanner-scanimage-program
+					    ,@scanimage-args)
+				 :sentinel #'scan-or-process)))
+		(scan-or-process
 		 (process event)
 		 (condition-case err
 		     (let ((ev (string-trim event)))
@@ -520,16 +503,31 @@ available, ask for a selection interactively."
 		   (error
 		    (cleanup)
 		    (signal (car err) (cdr err)))))
-		(scanimage
+		(tesseract
 		 ()
-		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
-			(scanimage-args (scanner--scanimage-args img-file
-								 :doc fmt)))
-		   (push img-file file-list)
-		   (make-process :name "Scanner (scanimage)"
-				 :command `(,scanner-scanimage-program
-					    ,@scanimage-args)
-				 :sentinel #'scan-or-finish))))
+		 (unless scanner-reverse-pages
+		   (setq file-list (nreverse file-list)))
+		 (setq fl-file (make-temp-file "scanlist" nil ".txt"
+					       (mapconcat #'identity
+							  file-list
+							  "\n")))
+		 (let ((tesseract-args (scanner--tesseract-args fl-file doc-file)))
+		   (make-process :name "Scanner (tesseract)"
+				 :command `(,scanner-tesseract-program
+					    ,@tesseract-args)
+				 :sentinel #'finish)))
+		(finish
+		 (process event)
+		 (unwind-protect
+		     (let ((ev (string-trim event)))
+		       (unless (string= "finished" ev)
+			 (error "%s: %s" process ev)))
+		   (cleanup)))
+		(cleanup
+		 ()
+		 (and file-list (dolist (file file-list)
+				  (delete-file file)))
+		 (and fl-file (delete-file fl-file))))
       (scanimage))))
 
 ;;;###autoload
@@ -555,17 +553,7 @@ available, ask for a selection interactively."
 		      (concat "." fmt)))
 	 (num-scans (prefix-numeric-value nscans))
 	 (page-count 1))
-    (cl-labels ((scan-or-finish
-		 (process event)
-		 (let ((ev (string-trim event)))
-		   (unless (string= "finished" ev)
-		     (error "%s: %s" process ev))
-		   (cond ((consp nscans) (when (y-or-n-p "Scan another page? ")
-					   (scanimage t)))
-			 ((> num-scans 1)
-			  (cl-decf num-scans)
-			  (run-at-time scanner-scan-delay nil #'scanimage t)))))
-		(scanimage
+    (cl-labels ((scanimage
 		 (multi-scan)
 		 (let* ((img-file (if multi-scan
 				      (prog1
@@ -579,7 +567,17 @@ available, ask for a selection interactively."
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program
 					    ,@scanimage-args)
-				 :sentinel #'scan-or-finish))))
+				 :sentinel #'scan-or-finish)))
+		(scan-or-finish
+		 (process event)
+		 (let ((ev (string-trim event)))
+		   (unless (string= "finished" ev)
+		     (error "%s: %s" process ev))
+		   (cond ((consp nscans) (when (y-or-n-p "Scan another page? ")
+					   (scanimage t)))
+			 ((> num-scans 1)
+			  (cl-decf num-scans)
+			  (run-at-time scanner-scan-delay nil #'scanimage t))))))
       (scanimage (or (> num-scans 1) (consp nscans))))))
 
 (provide 'scanner)
