@@ -55,121 +55,109 @@
 (ert-deftest scanner-test-determine-image-format ()
   "Test format determination from extension."
   (let ((scanner-image-format '(:image "img-def" :doc "doc-def")))
+    ;; a known image format is returned in standardized form
     (should (string= "jpeg" (scanner--determine-image-format "jpg")))
     (should (string= "jpeg" (scanner--determine-image-format "jpeg")))
+    (should (string= "jpeg" (scanner--determine-image-format "JPG")))
     (should (string= "tiff" (scanner--determine-image-format "tiff")))
     (should (string= "tiff" (scanner--determine-image-format "tif")))
     (should (string= "pnm" (scanner--determine-image-format "pnm")))
     (should (string= "png" (scanner--determine-image-format "png")))
-    (should (string= "jpeg" (scanner--determine-image-format "JPG")))
-    (should (string= "jpeg" (scanner--determine-image-format "jpg")))
-    (should (string= "jpeg" (scanner--determine-image-format "jpeg")))
-    (should (string= "tiff" (scanner--determine-image-format "tiff")))
-    (should (string= "tiff" (scanner--determine-image-format "tif")))
-    (should (string= "pnm" (scanner--determine-image-format "pnm")))
-    (should (string= "png" (scanner--determine-image-format "png")))
-    (should (string= "jpeg" (scanner--determine-image-format "JPG")))
+    ;; unknown image formats are treated as the default format
     (should (string= "img-def" (scanner--determine-image-format nil)))
     (should (string= "img-def" (scanner--determine-image-format "")))
+    (should (string= "img-def" (scanner--determine-image-format "gif")))
     (should (string= "img-def" (scanner--determine-image-format 42)))
+    ;; if the argument is not char-or-string-p, an error is signalled
     (should-error (scanner--determine-image-format '(42))
 		  :type 'wrong-type-argument)))
 
-;; FIXME the order of some arguments is relevant, test this.
 (ert-deftest scanner-test-scanimage-args ()
   "Test the argument list construction for scanimage."
-  ;; minimum args list (no required options)
+  ;; minimum args list (no device-specific options are available)
   (let ((scanner--available-switches nil)
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
-	(scanner-device-name "devname"))
-    (should (cl-subsetp '("-d" "devname") (scanner--scanimage-args "file"
-								   :image)
-			:test #'string=))
-    (should (cl-subsetp '("-o" "file") (scanner--scanimage-args "file"
-								:image)
-			:test #'string=))
-    (should (member "--format=fmt-img" (scanner--scanimage-args "file" :image)))
-    (should (member "--format=arg-fmt" (scanner--scanimage-args "file"
-								:image
-								"arg-fmt")))
-    (should-not (member "--mode" (scanner--scanimage-args "file" :image)))
-    (should-not (member "--resolution" (scanner--scanimage-args "file"
-								:image)))
-    (should-not (member "-x" (scanner--scanimage-args "file" :image)))
-    (should-not (member "-y" (scanner--scanimage-args "file" :image)))
-    (should-not (member "-x" (scanner--scanimage-args "file" :doc)))
-    (should-not (member "-y" (scanner--scanimage-args "file" :doc)))
+	(scanner-device-name "devname")
+	(-compare-fn #'string=))
+    ;; known values are included with their switches
+    (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args "file"
+								    :image)))
+    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file"
+								 :image)))
+    (should (-contains-p (scanner--scanimage-args "file" :image)
+			 "--format=fmt-img"))
+    ;; a provided image format overrides the default format
+    (should (-contains-p (scanner--scanimage-args "file" :image "arg-fmt")
+			 "--format=arg-fmt"))
+    ;; device-specific options are not included in the argument list
+    (should-not (-contains-p (scanner--scanimage-args "file" :image) "--mode"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image)
+			     "--resolution"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image) "-x"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image) "-y"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc) "-x"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc) "-y"))
+    ;; without format and device name, these are not in the args list
     (let ((scanner-image-format nil)
 	  (scanner-device-name nil))
-      (should-not (member "--format=" (scanner--scanimage-args "file"
-							       :image)))
-      (should-not (member "-d" (scanner--scanimage-args "file" :image)))))
-  ;; image args list (present/missing args)
+      (should-not (-contains-p (scanner--scanimage-args "file" :image)
+			       "--format="))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-d"))))
+  ;; image args list with device-specific args
   (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
 	(scanner-doc-papersize :a4)
-	(scanner-paper-sizes '(:a4 (210 297))))
-    (should (cl-subsetp '("-o" "file") (scanner--scanimage-args "file" :image)
-			:test #'string=))
-    (should (member "--format=fmt-img" (scanner--scanimage-args "file"
-								:image)))
-    (should (member "--format=arg-fmt" (scanner--scanimage-args "file"
-								:image
-								"arg-fmt")))
-    (should (member "--mode=Color" (scanner--scanimage-args "file"
-							    :image)))
-    (should (member "--resolution=600" (scanner--scanimage-args "file"
-								:image)))
-    (should (cl-subsetp '("-x" "210") (scanner--scanimage-args "file" :doc)
-			:test #'string=))
-    (should (cl-subsetp '("-y" "297") (scanner--scanimage-args "file" :doc)
-			:test #'string=))
-    )
-  ;; doc args list (present/missing args)
+	(scanner-paper-sizes '(:a4 (210 297)))
+	(-compare-fn #'string=))
+    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image)))
+    (should (-contains-p (scanner--scanimage-args "file" :image)
+			 "--format=fmt-img"))
+    (should (-contains-p (scanner--scanimage-args "file" :image "arg-fmt")
+			 "--format=arg-fmt"))
+    (should (-contains-p (scanner--scanimage-args "file" :image) "--mode=Color"))
+    (should (-contains-p (scanner--scanimage-args "file" :image)
+			 "--resolution=600"))
+    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc)))
+    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc))))
+  ;; doc args list with device specific args
   (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
 	(scanner-doc-papersize :a4)
-	(scanner-paper-sizes '(:a4 (210 297))))
-    (should (cl-subsetp '("-o" "file") (scanner--scanimage-args "file" :doc)
-			:test #'string=))
-    (should (member "--format=fmt-doc" (scanner--scanimage-args "file"
-								:doc)))
-    (should (member "--format=arg-fmt" (scanner--scanimage-args "file"
-								:doc
-								"arg-fmt")))
-    (should (member "--mode=Gray" (scanner--scanimage-args "file"
-							   :doc)))
-    (should (member "--resolution=300" (scanner--scanimage-args "file"
-								:doc)))
-    (should (cl-subsetp '("-x" "210") (scanner--scanimage-args "file" :doc)
-			:test #'string=))
-    (should (cl-subsetp '("-y" "297") (scanner--scanimage-args "file" :doc)
-			:test #'string=))))
+	(scanner-paper-sizes '(:a4 (210 297)))
+	(-compare-fn #'string=))
+    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc)))
+    (should (-contains-p (scanner--scanimage-args "file" :doc)
+			 "--format=fmt-doc"))
+    (should (-contains-p (scanner--scanimage-args "file" :doc "arg-fmt")
+			 "--format=arg-fmt"))
+    (should (-contains-p (scanner--scanimage-args "file" :doc) "--mode=Gray"))
+    (should (-contains-p (scanner--scanimage-args "file" :doc)
+			 "--resolution=300"))
+    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc)))
+    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc)))))
 
 
-;; FIXME the order of some arguments is relevant, test this.
 (ert-deftest scanner-test-tesseract-args ()
   "Test the argument list construction for tesseract."
   (let ((scanner-resolution '(:image 600 :doc 300))
 	(scanner-tesseract-languages '("eng" "deu"))
 	(scanner-tesseract-switches '("--opt1" "--opt2"))
-	(scanner-tesseract-outputs '("out1" "out2")))
-    (should (cl-subsetp '("-l" "eng+deu") (scanner--tesseract-args "infile"
-								   "outfile")
-			:test #'string=))
-    (should (cl-subsetp '("--dpi" "300") (scanner--tesseract-args "infile"
-								  "outfile")
-			:test #'string=))
-    (should (member "--opt1" (scanner--tesseract-args "infile" "outfile")))
-    (should (member "--opt2" (scanner--tesseract-args "infile" "outfile")))
-    (should (member "infile" (scanner--tesseract-args "infile" "outfile")))
-    (should (member "outfile" (scanner--tesseract-args "infile" "outfile")))
-    (should (member "out1" (scanner--tesseract-args "infile" "outfile")))
-    (should (member "out2" (scanner--tesseract-args "infile" "outfile")))))
+	(scanner-tesseract-outputs '("out1" "out2"))
+	(-compare-fn #'string=))
+    (should (-is-infix-p '("-l" "eng+deu") (scanner--tesseract-args "infile"
+								    "outfile")))
+    (should (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
+								   "outfile")))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt1"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt2"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "infile"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "outfile"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "out1"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "out2"))))
 
 ;; Note: interactive commands are only tested for their non-interactive
 ;; behavior
