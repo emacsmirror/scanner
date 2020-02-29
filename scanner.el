@@ -292,7 +292,7 @@ results are cached in ‘scanner--available-switches’ and
       (goto-char (point-min))
       (while (re-search-forward scanner--device-option-re nil t)
 	(push (match-string 1) opts)))
-    (setq scanner--available-switches opts
+    (setq scanner--available-switches (nreverse opts)
 	  scanner--missing-switches
 	  (-difference scanner--device-specific-switches opts))
     (list scanner--available-switches scanner--missing-switches)))
@@ -319,27 +319,26 @@ argument for the intermediate representation before conversion to
 the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
-  (let ((opts scanner--available-switches))
+  (let ((size (when (eq :doc type)
+		(plist-get scanner-paper-sizes scanner-doc-papersize))))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
 		    (-when-let (fmt (or img-fmt
 					(plist-get scanner-image-format type)))
 		      (concat "--format=" fmt))
 		    "-o" outfile
-		    (and (eq :doc type)
-			 (-when-let* ((x (car (member "-x" opts)))
-				      (y (car (member "-y" opts)))
-				      ((&plist scanner-doc-papersize size)
-				       scanner-paper-sizes))
-			   (list x (number-to-string (car size))
-				 y (number-to-string (cadr size)))))
-		    (and (member "--mode" opts)
-			 (concat "--mode=" (plist-get scanner-scan-mode type)))
-		    (and (member "--resolution" opts)
-			 (concat "--resolution=" (number-to-string
-						  (plist-get
-						   scanner-resolution
-						   type))))
+		    (--map (pcase it
+			     ("--mode" (concat "--mode="
+					       (plist-get scanner-scan-mode type)))
+			     ("--resolution" (concat "--resolution="
+						     (number-to-string
+						      (plist-get scanner-resolution
+								 type))))
+			     ((and "-x" (guard size))
+			      (list "-x" (number-to-string (car size))))
+			     ((and "-y" (guard size))
+			      (list "-y" (number-to-string (cadr size)))))
+			   scanner--available-switches)
 		    scanner-scanimage-switches))))
 
 (defun scanner--tesseract-args (input output-base)
