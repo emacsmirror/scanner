@@ -1,6 +1,4 @@
 # Updating dependencies:
-# ELPA master branch (for hydra):
-#   git clone git://git.savannah.gnu.org/emacs/elpa.git
 # ELPA externals setup:
 #   make depsetup
 # ELPA externals update
@@ -10,6 +8,8 @@
 EMACS = emacs
 EL = scanner.el
 TEST = scanner-test.el
+RUN_ENTRY = scanner.el
+TEST_ENTRY = scanner-test.el
 ELPA_EXT = dash
 LDFLAGS = -L ./dep/dash
 
@@ -19,7 +19,7 @@ compile: $(EL:.el=.elc) $(TEST:.el=.elc)
 test: $(TEST:.el=.elc)
 
 clean:
-	rm -f scanner.elc scanner-test.elc
+	rm -f *.elc
 
 depclean:
 	rm -rf ./dep/*
@@ -39,8 +39,8 @@ depupdate:
 
 
 check: $(EL:.el=.elc) $(TEST:.el=.elc)
-	$(EMACS) -Q --batch -L . $(LDFLAGS) -l scanner-test.elc	\
+	$(EMACS) -Q --batch -L . $(LDFLAGS) -l $(TEST_ENTRY)	\
 	-f ert-run-tests-batch-and-exit
 
 run: $(EL:.el=.elc)
-	$(EMACS) -Q -L . $(LDFLAGS) -l scanner.el &
+	$(EMACS) -Q -L . $(LDFLAGS) -l $(RUN_ENTRY) &
