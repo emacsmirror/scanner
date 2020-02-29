@@ -13,7 +13,7 @@ TEST_ENTRY = scanner-test.el
 ELPA_EXT = dash
 LDFLAGS = -L ./dep/dash
 
-.PHONY: compile test clean depclean depsetup depupdate run
+.PHONY: compile test check clean depclean depsetup depupdate run
 
 compile: $(EL:.el=.elc) $(TEST:.el=.elc)
 test: $(TEST:.el=.elc)
