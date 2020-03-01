@@ -239,8 +239,14 @@ plugged in.  For these, auto-detection will always be done."
 		  :help "Select a scanning device."))
     (define-key map [seperator]
       '(menu-item "--"))
+    (define-key map [image-multi]
+      '(menu-item "Scan multiple images" scanner-scan-multi-images
+		  :key-sequence nil))
     (define-key map [image]
       '(menu-item "Scan an image" scanner-scan-image
+		  :key-sequence nil))
+    (define-key map [document-multi]
+      '(menu-item "Scan a multi-page document" scanner-scan-multi-doc
 		  :key-sequence nil))
     (define-key map [document]
       '(menu-item "Scan a document" scanner-scan-document
@@ -563,6 +569,11 @@ available, ask for a selection interactively."
 		    (concat doc-file))
       (scanimage))))
 
+(defun scanner-scan-multi-doc (filename)
+  "Scan a multi-page document, writing them to FILENAME."
+  (interactive "FDocument file name: ")
+  (scanner-scan-document (list 4) filename))
+
 ;;;###autoload
 (defun scanner-scan-image (nscans filename)
   "Scan NSCANS images, and write the result to FILENAME.
@@ -572,7 +583,8 @@ prefix argument, i.e. ‘\\[universal-argument]
 confirmation to scan another image, etc.  With a numeric prefix
 argument, e.g. ‘\\[universal-argument] 3
 \\[scanner-scan-document]’, scan that many images (in this case,
-3).
+3).  A numerical suffix is added to FILENAME for each scanned
+image.
 
 If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
@@ -614,6 +626,12 @@ available, ask for a selection interactively."
 			  (cl-decf num-scans)
 			  (run-at-time scanner-scan-delay nil #'scanimage t))))))
       (scanimage (or (> num-scans 1) (consp nscans))))))
+
+(defun scanner-scan-multi-images (filename)
+  "Scan multiple images, writing them to FILENAME.
+A numerical suffix is added to FILENAME for each scanned image."
+  (interactive "FImage file name: ")
+  (scanner-scan-image (list 4) filename))
 
 (provide 'scanner)
 
