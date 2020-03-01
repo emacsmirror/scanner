@@ -396,6 +396,17 @@ availability of required options."
 	    (t (call-interactively #'scanner-select-device)))))
   (scanner--check-device-switches))
 
+(defun scanner--log (msg &rest args)
+  "Write a log message MSG to the process log buffer.
+MSG is a format string, with ARGS passed to ‘format’."
+  (with-current-buffer (scanner--log-buffer)
+    (goto-char (point-max))
+    (insert (apply #'format msg args) "\n")))
+
+(defun scanner--log-buffer ()
+  "Return scanner log buffer or create it."
+  (get-buffer-create "*Scanner*"))
+
 
 ;; commands
 (defun scanner-select-papersize (size)
@@ -498,7 +509,8 @@ available, ask for a selection interactively."
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program
 					    ,@scanimage-args)
-				 :sentinel #'scan-or-process)))
+				 :sentinel #'scan-or-process
+				 :stderr (scanner--log-buffer))))
 		(scan-or-process
 		 (process event)
 		 (condition-case err
@@ -523,11 +535,14 @@ available, ask for a selection interactively."
 					       (mapconcat #'identity
 							  file-list
 							  "\n")))
-		 (let ((tesseract-args (scanner--tesseract-args fl-file doc-file)))
+		 (let ((tesseract-args (scanner--tesseract-args fl-file
+								doc-file)))
+		   (scanner--log "")	; make sure logs are properly sequenced
 		   (make-process :name "Scanner (tesseract)"
 				 :command `(,scanner-tesseract-program
 					    ,@tesseract-args)
-				 :sentinel #'finish)))
+				 :sentinel #'finish
+				 :stderr (scanner--log-buffer))))
 		(finish
 		 (process event)
 		 (unwind-protect
@@ -540,6 +555,8 @@ available, ask for a selection interactively."
 		 (and file-list (dolist (file file-list)
 				  (delete-file file)))
 		 (and fl-file (delete-file fl-file))))
+      (scanner--log "Scanning document to file(s) \"%s.*\""
+		    (concat doc-file))
       (scanimage))))
 
 ;;;###autoload
@@ -576,10 +593,12 @@ available, ask for a selection interactively."
 				    (concat fname-base fname-ext)))
 			(scanimage-args (scanner--scanimage-args img-file
 								 :image fmt)))
+		   (scanner--log "Scanning image to file \"%s\"" img-file)
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program
 					    ,@scanimage-args)
-				 :sentinel #'scan-or-finish)))
+				 :sentinel #'scan-or-finish
+				 :stderr (scanner--log-buffer))))
 		(scan-or-finish
 		 (process event)
 		 (let ((ev (string-trim event)))
