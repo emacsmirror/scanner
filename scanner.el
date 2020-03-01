@@ -302,7 +302,8 @@ results are cached in ‘scanner--available-switches’ and
 	(push (match-string 1) opts)))
     (setq scanner--available-switches (nreverse opts)
 	  scanner--missing-switches
-	  (-difference scanner--device-specific-switches opts))
+	  (-difference scanner--device-specific-switches
+		       scanner--available-switches))
     (list scanner--available-switches scanner--missing-switches)))
 
 (defun scanner--detect-devices ()
@@ -394,7 +395,10 @@ availability of required options."
 	    ((eql 1 num-devices)
 	     (setq scanner-device-name (caar scanner--detected-devices)))
 	    (t (call-interactively #'scanner-select-device)))))
-  (scanner--check-device-switches))
+  (scanner--check-device-switches)
+  (when scanner--missing-switches
+    (scanner--log "Some required options are not supported by the device: %S"
+		  scanner--missing-switches)))
 
 (defun scanner--log (msg &rest args)
   "Write a log message MSG to the process log buffer.
@@ -537,7 +541,7 @@ available, ask for a selection interactively."
 							  "\n")))
 		 (let ((tesseract-args (scanner--tesseract-args fl-file
 								doc-file)))
-		   (scanner--log "")	; make sure logs are properly sequenced
+		   (scanner--log "")   ; make sure logs are properly sequenced
 		   (make-process :name "Scanner (tesseract)"
 				 :command `(,scanner-tesseract-program
 					    ,@tesseract-args)
