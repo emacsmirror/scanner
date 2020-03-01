@@ -188,6 +188,7 @@ This is usually \"Color\" or \"Gray\", but depends on your
 scanning device."
   :type '(plist :value-type string))
 
+;; FIXME remove these before release
 (defcustom scanner-scanimage-switches
   '("--brightness" "50" "--contrast" "50")
   "Additional options to be passed to scanimage(1)."
@@ -196,7 +197,9 @@ scanning device."
 (defcustom scanner-device-name
   nil
   "SANE scanning device name or nil.
-If nil, attempt auto-detection."
+If nil, attempt auto-detection.  Note that some devices, like USB
+scanners, may receive a different name every time they are
+plugged in.  For these, auto-detection will always be done."
   :type '(restricted-sexp :match-alternatives
 			  (stringp 'nil)))
 
@@ -261,12 +264,12 @@ name.")
 
 (eval-and-compile
   (defconst scanner--device-specific-switches
-    '("--mode" "--depth" "--resolution" "-x" "-y")
+    '("--mode" "--resolution" "-x" "-y")
     "List of required device specific options.
 
 These options are necessary for the full set of features offered
-by the scanner package.  If one of these is missing, something may
-not work as expected."))
+by the scanner package.  If one of these is missing, this is
+ignored, but something may not work as expected."))
 
 (defconst scanner--device-option-re
   (eval-when-compile (regexp-opt scanner--device-specific-switches t)))
