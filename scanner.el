@@ -277,41 +277,6 @@ These options are necessary for the full set of features offered
 by the scanner package.  If one of these is missing, this is
 ignored, but something may not work as expected."))
 
-(defconst scanner--device-option-re
-  (eval-when-compile (regexp-opt scanner--device-specific-switches t)))
-
-(defvar scanner--available-switches
-  nil
-  "List of required options implemented by the device backend.")
-
-(defvar scanner--missing-switches
-  nil
-  "List of required options missing from the device backend.")
-
-(defun scanner--check-device-switches ()
-  "Return available and missing options provided by the device.
-
-This function checks the SANE backend of the device selected by
-‘scanner-device-name’ against the required options.  If
-‘scanner-device-name’ is nil, it attempts auto-detection.  The
-return value is a list comprising a list of the available options
-and a list of the missing options.  As a side effect, these
-results are cached in ‘scanner--available-switches’ and
-‘scanner--missing-switches’."
-  (let ((-compare-fn #'string=)
-	opts)
-    (with-temp-buffer
-      (apply #'call-process scanner-scanimage-program nil t nil "-A"
-	     (and scanner-device-name (list "-d" scanner-device-name)))
-      (goto-char (point-min))
-      (while (re-search-forward scanner--device-option-re nil t)
-	(push (match-string 1) opts)))
-    (setq scanner--available-switches (nreverse opts)
-	  scanner--missing-switches
-	  (-difference scanner--device-specific-switches
-		       scanner--available-switches))
-    (list scanner--available-switches scanner--missing-switches)))
-
 (defun scanner--detect-devices ()
   "Return a list of auto-detected scanning devices.
 
@@ -324,10 +289,11 @@ name, the device type, and the vendor and model names."
 	  (--filter (eql 3 (length it))
 		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
 
-(defun scanner--scanimage-args (outfile type &optional img-fmt)
+(defun scanner--scanimage-args (outfile type switches &optional img-fmt)
   "Construct the argument list for scanimage(1).
-OUTFILE is the output filename and IMG-FMT is the output image
-format.  TYPE is either ‘:image’ or ‘:doc’.
+OUTFILE is the output filename, TYPE is either ‘:image’ or
+‘:doc’, SWITCHES is a list of available device-dependent options
+and IMG-FMT is the output image format.
 
 When scanning documents (type :doc), scanner uses the IMG-FMT
 argument for the intermediate representation before conversion to
@@ -355,7 +321,7 @@ simply dropped."
 			      (list "-x" (number-to-string (car size))))
 			     ((and "-y" (guard size))
 			      (list "-y" (number-to-string (cadr size)))))
-			   scanner--available-switches)
+			   switches)
 		    scanner-scanimage-switches))))
 
 (defun scanner--tesseract-args (input output-base)
@@ -370,41 +336,53 @@ extensions depending on the selected output options, see
 		  scanner-tesseract-switches
 		  scanner-tesseract-outputs)))
 
-(defconst scanner--image-extensions
-  '(("jpeg" . "jpeg")
-    ("jpg" . "jpeg")
-    ("png" . "png")
-    ("pnm" . "pnm")
-    ("tiff" . "tiff")
-    ("tif" . "tiff"))
-  "List of known image filename extensions with aliases.")
-
 (defun scanner--determine-image-format (extension)
   "Determine image file format from EXTENSION.
 If the extension is unknown, return the default format."
-  (let ((ext (if extension (downcase extension) "")))
-    (or (cdr (assoc ext scanner--image-extensions))
+  (let ((ext (if extension (downcase extension) ""))
+	(known-ext '(("jpeg" . "jpeg")
+		     ("jpg" . "jpeg")
+		     ("png" . "png")
+		     ("pnm" . "pnm")
+		     ("tiff" . "tiff")
+		     ("tif" . "tiff"))))
+    (or (cdr (assoc ext known-ext))
 	(plist-get scanner-image-format :image))))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
 If no scanning device has been configured or the configured
-device is not available, attempt auto-detection.  Check for
-availability of required options."
-  (unless (and scanner-device-name
-	       (eql 0 (call-process scanner-scanimage-program
-				    nil nil nil "-n"
-				    "-d" scanner-device-name)))
-    (let ((num-devices (length (scanner--detect-devices))))
-      (cond ((eql 0 num-devices)
-	     (user-error "No scanning device was found"))
-	    ((eql 1 num-devices)
-	     (setq scanner-device-name (caar scanner--detected-devices)))
-	    (t (call-interactively #'scanner-select-device)))))
-  (scanner--check-device-switches)
-  (when scanner--missing-switches
-    (scanner--log "Some required options are not supported by the device: %S"
-		  scanner--missing-switches)))
+device is not available, attempt auto-detection and maybe ask for
+a device selection.
+
+This function checks the SANE backend of the selected device
+against the required options.  The return value is a list of the
+available options."
+  (let ((-compare-fn #'string=)
+	(switches-re (eval-when-compile
+		       (regexp-opt scanner--device-specific-switches t)))
+	opts)
+    (unless (and scanner-device-name
+		 (eql 0 (call-process scanner-scanimage-program
+				      nil nil nil "-n"
+				      "-d" scanner-device-name)))
+      (let ((num-devices (length (scanner--detect-devices))))
+	(cond ((eql 0 num-devices)
+	       (user-error "No scanning device was found"))
+	      ((eql 1 num-devices)
+	       (setq scanner-device-name (caar scanner--detected-devices)))
+	      (t (call-interactively #'scanner-select-device)))))
+    (with-temp-buffer
+      (apply #'call-process scanner-scanimage-program nil t nil "-A"
+	     (and scanner-device-name (list "-d" scanner-device-name)))
+      (goto-char (point-min))
+      (while (re-search-forward switches-re nil t)
+	(push (match-string 1) opts)))
+    (-when-let (missing (-difference scanner--device-specific-switches
+				     opts))
+      (scanner--log "Some required options are not supported by the device: %S"
+		    missing))
+    (nreverse opts)))
 
 (defun scanner--log (msg &rest args)
   "Write a log message MSG to the process log buffer.
@@ -504,17 +482,19 @@ If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFDocument file name: ")
-  (scanner--ensure-init)
   (let ((doc-file (file-name-sans-extension filename))
 	(num-pages (prefix-numeric-value npages))
 	(fmt (plist-get scanner-image-format :doc))
+	(switches (scanner--ensure-init))
 	(file-list '())
 	(fl-file nil))
     (cl-labels ((scanimage
 		 ()
 		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
 			(scanimage-args (scanner--scanimage-args img-file
-								 :doc fmt)))
+								 :doc
+								 switches
+								 fmt)))
 		   (push img-file file-list)
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program
@@ -590,13 +570,13 @@ If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFImage file name: ")
-  (scanner--ensure-init)
   (let* ((fmt (scanner--determine-image-format filename))
 	 (fname-base (file-name-sans-extension filename))
 	 (fname-ext (if (file-name-extension filename)
 			(file-name-extension filename t)
 		      (concat "." fmt)))
 	 (num-scans (prefix-numeric-value nscans))
+	 (switches (scanner--ensure-init))
 	 (page-count 1))
     (cl-labels ((scanimage
 		 (multi-scan)
@@ -608,7 +588,9 @@ available, ask for a selection interactively."
 					(cl-incf page-count))
 				    (concat fname-base fname-ext)))
 			(scanimage-args (scanner--scanimage-args img-file
-								 :image fmt)))
+								 :image
+								 switches
+								 fmt)))
 		   (scanner--log "Scanning image to file \"%s\"" img-file)
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program

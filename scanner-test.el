@@ -73,37 +73,47 @@
 (ert-deftest scanner-test-scanimage-args ()
   "Test the argument list construction for scanimage."
   ;; minimum args list (no device-specific options are available)
-  (let ((scanner--available-switches nil)
+  (let ((switches nil)
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-device-name "devname")
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     ;; known values are included with their switches
     (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args "file"
-								    :image)))
+								    :image
+								    switches)))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file"
-								 :image)))
-    (should (-contains-p (scanner--scanimage-args "file" :image)
+								 :image
+								 switches)))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches)
 			 "--format=fmt-img"))
     ;; a provided image format overrides the default format
-    (should (-contains-p (scanner--scanimage-args "file" :image "arg-fmt")
+    (should (-contains-p (scanner--scanimage-args "file" :image switches
+						  "arg-fmt")
 			 "--format=arg-fmt"))
     ;; device-specific options are not included in the argument list
-    (should-not (-contains-p (scanner--scanimage-args "file" :image) "--mode"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image)
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+			     "--mode"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
 			     "--resolution"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image) "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image) "-y"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc) "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc) "-y"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+			     "-x"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+			     "-y"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches)
+			     "-x"))
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches)
+			     "-y"))
     ;; without format and device name, these are not in the args list
     (let ((scanner-image-format nil)
 	  (scanner-device-name nil))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image)
+      (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
 			       "--format="))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-d"))))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image
+							switches)
+			       "-d"))))
   ;; image args list with device-specific args
-  (let ((scanner--available-switches '("--resolution" "-x" "-y" "--mode"))
+  (let ((switches '("--resolution" "-x" "-y" "--mode"))
 	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
@@ -111,29 +121,43 @@
 	(scanner-paper-sizes '(:a4 (210 297)))
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
-    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image)))
-    (should (-contains-p (scanner--scanimage-args "file" :image)
+    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image
+								 switches)))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches)
 			 "--format=fmt-img"))
-    (should (-contains-p (scanner--scanimage-args "file" :image "arg-fmt")
+    (should (-contains-p (scanner--scanimage-args "file" :image switches
+						  "arg-fmt")
 			 "--format=arg-fmt"))
-    (should (-contains-p (scanner--scanimage-args "file" :image) "--mode=Color"))
-    (should (-contains-p (scanner--scanimage-args "file" :image)
+    (should (-contains-p (scanner--scanimage-args "file" :image switches)
+			 "--mode=Color"))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches)
 			 "--resolution=600"))
-    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc)))
-    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc)))
-    (should (-is-infix-p '("-x" "200") (scanner--scanimage-args "file" :image)))
-    (should (-is-infix-p '("-y" "250") (scanner--scanimage-args "file" :image)))
-    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc)))
-    (should (-contains-p (scanner--scanimage-args "file" :doc)
+    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc
+								switches)))
+    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc
+								switches)))
+    (should (-is-infix-p '("-x" "200") (scanner--scanimage-args "file" :image
+								switches)))
+    (should (-is-infix-p '("-y" "250") (scanner--scanimage-args "file" :image
+								switches)))
+    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc
+								 switches)))
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
 			 "--format=fmt-doc"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc "arg-fmt")
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches
+						  "arg-fmt")
 			 "--format=arg-fmt"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc) "--mode=Gray"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc)
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
+			 "--mode=Gray"))
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
 			 "--resolution=300"))
     (let ((scanner-image-size nil))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-x"))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image) "-y")))))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image
+							switches)
+			       "-x"))
+      (should-not (-contains-p (scanner--scanimage-args "file" :image
+							switches)
+			       "-y")))))
 
 
 (ert-deftest scanner-test-tesseract-args ()

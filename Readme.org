@@ -40,3 +40,5 @@
 
   - This package doesn't support document feeders yet.
   - This package doesn't support authentication.
+  - If a new document scan is started while another is still running, the log
+    will be messed up a bit.
