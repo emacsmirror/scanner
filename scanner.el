@@ -132,18 +132,23 @@ The value must be one of the keys in the paper sizes list."
   "Path and file name of the tesseract(1) program."
   :type '(string))
 
+(defun scanner--widget-validate-subset (error-msg widget set)
+  "Issue ERROR-MSG if the value of WIDGET is a not subset of SET.
+ERROR-MSG is passed to ‘format’ with two string arguments: the
+widget's values and the elements of SET."
+  (let ((values (widget-value widget)))
+     (unless (cl-subsetp values set :test #'string=)
+       (widget-put widget :error (format error-msg
+					 (mapconcat #'identity values ", ")
+					 (mapconcat #'identity set ", ")))
+       widget)))
+
 (defun scanner--validate-languages (widget)
   "Validate the language selection in customization WIDGET."
-  (let ((val (widget-value widget))
-	(langs (cdr (process-lines scanner-tesseract-program
-				   "--list-langs"))))
-    (unless (cl-subsetp val langs :test #'string=)
-      (widget-put widget
-		  :error
-		  (format "Unknown language(s): %s; available are: %s"
-			  (mapconcat #'identity val ", ")
-			  (mapconcat #'identity langs ", ")))
-      widget)))
+  (scanner--widget-validate-subset
+   "Unknown language(s): %s; available are: %s" widget
+   (cdr (process-lines scanner-tesseract-program
+		       "--list-langs"))))
 
 (defcustom scanner-tesseract-languages
   '("eng")
@@ -157,16 +162,9 @@ The value must be one of the keys in the paper sizes list."
 
 (defun scanner--validate-outputs (widget)
   "Validate the output selection in customization WIDGET."
-  (let ((val (widget-value widget))
-	(configs (directory-files scanner-tesseract-configdir nil "[^.]")))
-    (unless (cl-subsetp val configs :test #'string=)
-      (widget-put widget
-		  :error
-		  (format "Unknown output(s): %s; available are: %s"
-			  (mapconcat #'identity val ", ")
-			  (mapconcat #'identity configs ", ")))
-      widget)))
-
+  (scanner--widget-validate-subset
+   "Unknown output(s): %s; available are: %s" widget
+   (directory-files scanner-tesseract-configdir nil "[^.]")))
 
 (defcustom scanner-tesseract-outputs
   '("pdf" "txt")
