@@ -137,11 +137,11 @@ The value must be one of the keys in the paper sizes list."
 ERROR-MSG is passed to ‘format’ with two string arguments: the
 widget's values and the elements of SET."
   (let ((values (widget-value widget)))
-     (unless (cl-subsetp values set :test #'string=)
-       (widget-put widget :error (format error-msg
-					 (mapconcat #'identity values ", ")
-					 (mapconcat #'identity set ", ")))
-       widget)))
+    (unless (cl-subsetp values set :test #'string=)
+      (widget-put widget :error (format error-msg
+					(mapconcat #'identity values ", ")
+					(mapconcat #'identity set ", ")))
+      widget)))
 
 (defun scanner--validate-languages (widget)
   "Validate the language selection in customization WIDGET."
@@ -403,8 +403,6 @@ MSG is a format string, with ARGS passed to ‘format’."
 				    scanner-paper-sizes))))
      (list (intern (concat ":"
 			   (completing-read "Papersize: " choices nil t))))))
-  (unless (plist-member scanner-paper-sizes size)
-    (signal 'args-out-of-range `(,size)))
   (setq scanner-doc-papersize size))
 
 (defun scanner-select-languages (languages)
@@ -413,10 +411,6 @@ MSG is a format string, with ARGS passed to ‘format’."
    (let ((langs (cdr (process-lines scanner-tesseract-program
 				    "--list-langs"))))
      (list (completing-read-multiple "Languages: " langs nil t))))
-  (unless (consp languages)
-    (signal 'wrong-type-argument `(consp ,languages)))
-  (unless (cl-every #'stringp languages)
-    (signal 'wrong-type-argument `(stringp ,@languages)))
   (setq scanner-tesseract-languages languages))
 
 (defun scanner-select-outputs (outputs)
@@ -424,24 +418,16 @@ MSG is a format string, with ARGS passed to ‘format’."
   (interactive
    (let ((configs (directory-files scanner-tesseract-configdir nil "[^.]")))
      (list (completing-read-multiple "Outputs: " configs nil t))))
-  (unless (consp outputs)
-    (signal 'wrong-type-argument `(consp ,outputs)))
-  (unless (cl-every #'stringp outputs)
-    (signal 'wrong-type-argument `(stringp ,@outputs)))
   (setq scanner-tesseract-outputs outputs))
 
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
   (interactive "NImage scan resolution: ")
-  (unless (numberp resolution)
-    (signal 'wrong-type-argument `(numberp ,resolution)))
   (plist-put scanner-resolution :image resolution))
 
 (defun scanner-set-document-resolution (resolution)
   "Set the RESOLUTION for scanning documents."
   (interactive "NDocument scan resolution: ")
-  (unless (numberp resolution)
-    (signal 'wrong-type-argument `(numberp ,resolution)))
   (plist-put scanner-resolution :doc resolution))
 
 (defun scanner-select-device (device)

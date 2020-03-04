@@ -186,9 +186,7 @@
     (should (eql 300 (progn (scanner-set-image-resolution 300)
 			    (plist-get scanner-resolution :image))))
     (should (eql 600 (progn (scanner-set-image-resolution 300)
-			    (plist-get scanner-resolution :doc))))
-    (should-error (scanner-set-image-resolution nil)
-		  :type 'wrong-type-argument)))
+			    (plist-get scanner-resolution :doc))))))
 
 (ert-deftest scanner-test-set-document-resolution ()
   "Test the document resolution setter."
@@ -196,43 +194,25 @@
     (should (eql 600 (progn (scanner-set-document-resolution 300)
 			    (plist-get scanner-resolution :image))))
     (should (eql 300 (progn (scanner-set-document-resolution 300)
-			    (plist-get scanner-resolution :doc))))
-    (should-error (scanner-set-document-resolution nil)
-		  :type 'wrong-type-argument)))
+			    (plist-get scanner-resolution :doc))))))
 
 (ert-deftest scanner-test-select-papersize ()
   "Test the papersize selection command."
   (let ((scanner-paper-sizes '(:a4 (210 297) :a5 (148 210)))
 	(scanner-doc-papersize :a5))
-    (should (eq :a4 (scanner-select-papersize :a4)))
-    (should-error (scanner-select-papersize :wrdlbrmpft)
-		  :type 'args-out-of-range)
-    (ignore-errors
-      (should (eq :a5 (scanner-select-papersize :wrdlbrmpft))))))
+    (should (eq :a4 (scanner-select-papersize :a4)))))
 
 (ert-deftest scanner-test-select-languages ()
   "Test the language selection command."
   (let ((scanner-tesseract-languages '("eng")))
     (should (equal '("deu") (scanner-select-languages '("deu"))))
-    (should (equal '("deu" "eng") (scanner-select-languages '("deu" "eng"))))
-    (should-error (scanner-select-languages 42)
-		  :type 'wrong-type-argument)
-    (should-error (scanner-select-languages '("eng" 42))
-		  :type 'wrong-type-argument)
-    (ignore-errors
-      (should (equal '("eng") (scanner-select-languages 42))))))
+    (should (equal '("deu" "eng") (scanner-select-languages '("deu" "eng"))))))
 
 (ert-deftest scanner-test-select-outputs ()
   "Test the output selection command."
   (let ((scanner-tesseract-outputs '("pdf")))
     (should (equal '("txt") (scanner-select-outputs '("txt"))))
-    (should (equal '("pdf" "txt") (scanner-select-outputs '("pdf" "txt"))))
-    (should-error (scanner-select-outputs 42)
-		  :type 'wrong-type-argument)
-    (should-error (scanner-select-outputs '("pdf" 42))
-		  :type 'wrong-type-argument)
-    (ignore-errors
-      (should (equal '("pdf") (scanner-select-outputs 42))))))
+    (should (equal '("pdf" "txt") (scanner-select-outputs '("pdf" "txt"))))))
 
 (provide 'scanner-test)
 
