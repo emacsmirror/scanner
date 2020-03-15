@@ -7,7 +7,7 @@
 ;; Created: 05. Feb 2020
 ;; Version: 0.0
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
-;; Keywords: hardware multimedia
+;; Keywords: hardware, multimedia
 ;; URL: https://gitlab.com/rstocker/scanner.git
 
 ;; This file is NOT part of GNU Emacs
@@ -50,71 +50,52 @@
 (require 'dash)
 (require 'ert)
 
-(ert-deftest scanner-test-determine-image-format ()
-  "Test format determination from extension."
-  (let ((scanner-image-format '(:image "img-def" :doc "doc-def")))
-    ;; a known image format is returned in standardized form
-    (should (string= "jpeg" (scanner--determine-image-format "jpg")))
-    (should (string= "jpeg" (scanner--determine-image-format "jpeg")))
-    (should (string= "jpeg" (scanner--determine-image-format "JPG")))
-    (should (string= "tiff" (scanner--determine-image-format "tiff")))
-    (should (string= "tiff" (scanner--determine-image-format "tif")))
-    (should (string= "pnm" (scanner--determine-image-format "pnm")))
-    (should (string= "png" (scanner--determine-image-format "png")))
-    ;; unknown image formats are treated as the default format
-    (should (string= "img-def" (scanner--determine-image-format nil)))
-    (should (string= "img-def" (scanner--determine-image-format "")))
-    (should (string= "img-def" (scanner--determine-image-format "gif")))
-    (should (string= "img-def" (scanner--determine-image-format 42)))
-    ;; if the argument is not char-or-string-p, an error is signalled
-    (should-error (scanner--determine-image-format '(42))
-		  :type 'wrong-type-argument)))
-
 (ert-deftest scanner-test-scanimage-args ()
   "Test the argument list construction for scanimage."
   ;; minimum args list (no device-specific options are available)
   (let ((switches nil)
-	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-device-name "devname")
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     ;; known values are included with their switches
     (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args "file"
 								    :image
-								    switches)))
+								    switches
+								    "jpeg")))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file"
 								 :image
-								 switches)))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches)
-			 "--format=fmt-img"))
-    ;; a provided image format overrides the default format
-    (should (-contains-p (scanner--scanimage-args "file" :image switches
-						  "arg-fmt")
-			 "--format=arg-fmt"))
+								 switches
+								 "jpeg")))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+			 "--format=jpeg"))
     ;; device-specific options are not included in the argument list
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
+						      "jpeg")
 			     "--mode"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
+						      "jpeg")
 			     "--resolution"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
+						      "jpeg")
 			     "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
+						      "jpeg")
 			     "-y"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
 			     "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches)
+    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
 			     "-y"))
     ;; without format and device name, these are not in the args list
     (let ((scanner-image-format nil)
 	  (scanner-device-name nil))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image switches)
+      (should-not (-contains-p (scanner--scanimage-args "file" :image switches
+							"jpeg")
 			       "--format="))
       (should-not (-contains-p (scanner--scanimage-args "file" :image
-							switches)
+							switches "jpeg")
 			       "-d"))))
   ;; image args list with device-specific args
   (let ((switches '("--resolution" "-x" "-y" "--mode"))
-	(scanner-image-format '(:image "fmt-img" :doc "fmt-doc"))
 	(scanner-resolution '(:doc 300 :image 600))
 	(scanner-scan-mode '(:image "Color" :doc "Gray"))
 	(scanner-doc-papersize :a4)
@@ -122,41 +103,35 @@
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image
-								 switches)))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches)
-			 "--format=fmt-img"))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches
-						  "arg-fmt")
-			 "--format=arg-fmt"))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches)
+								 switches "jpeg")))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+			 "--format=jpeg"))
+    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
 			 "--mode=Color"))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches)
+    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
 			 "--resolution=600"))
     (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc
-								switches)))
+								switches "jpeg")))
     (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc
-								switches)))
+								switches "jpeg")))
     (should (-is-infix-p '("-x" "200") (scanner--scanimage-args "file" :image
-								switches)))
+								switches "jpeg")))
     (should (-is-infix-p '("-y" "250") (scanner--scanimage-args "file" :image
-								switches)))
+								switches "jpeg")))
     (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc
-								 switches)))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
-			 "--format=fmt-doc"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches
-						  "arg-fmt")
-			 "--format=arg-fmt"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
+								 switches "jpeg")))
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+			 "--format=jpeg"))
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
 			 "--mode=Gray"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches)
+    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
 			 "--resolution=300"))
     (let ((scanner-image-size nil))
       (should-not (-contains-p (scanner--scanimage-args "file" :image
-							switches)
+							switches "jpeg")
 			       "-x"))
       (should-not (-contains-p (scanner--scanimage-args "file" :image
-							switches)
+							switches "jpeg")
 			       "-y")))))
 
 

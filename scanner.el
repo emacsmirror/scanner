@@ -7,7 +7,7 @@
 ;; Created: 05. Feb 2020
 ;; Version: 0.0
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
-;; Keywords: hardware multimedia
+;; Keywords: hardware, multimedia
 ;; URL: https://gitlab.com/rstocker/scanner.git
 
 ;; This file is NOT part of GNU Emacs
@@ -70,7 +70,7 @@
 (require 'menu-bar)
 
 
-;; customization
+;;;; customization
 (defgroup scanner nil
   "Scan documents and images."
   :group 'multimedia)
@@ -186,9 +186,8 @@ This is usually \"Color\" or \"Gray\", but depends on your
 scanning device."
   :type '(plist :value-type string))
 
-;; FIXME remove these before release
 (defcustom scanner-scanimage-switches
-  '("--brightness" "50" "--contrast" "50")
+  '()
   "Additional options to be passed to scanimage(1)."
   :type '(repeat string))
 
@@ -207,7 +206,7 @@ plugged in.  For these, auto-detection will always be done."
   :type '(number))
 
 
-;; menu
+;;;; menu
 ;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
@@ -257,7 +256,7 @@ plugged in.  For these, auto-detection will always be done."
   (list 'menu-item "Scanner" scanner-menu))
 
 
-;; internal variables and functions
+;;;; internal variables and functions
 (defvar scanner--detected-devices
   nil
   "List of devices detected by SANE.
@@ -287,34 +286,33 @@ name, the device type, and the vendor and model names."
 	  (--filter (eql 3 (length it))
 		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
 
-(defun scanner--scanimage-args (outfile type switches &optional img-fmt)
+(defun scanner--scanimage-args (outfile scan-type switches img-fmt)
   "Construct the argument list for scanimage(1).
-OUTFILE is the output filename, TYPE is either ‘:image’ or
+OUTFILE is the output filename, SCAN-TYPE is either ‘:image’ or
 ‘:doc’, SWITCHES is a list of available device-dependent options
 and IMG-FMT is the output image format.
 
-When scanning documents (type :doc), scanner uses the IMG-FMT
+When scanning documents (scan-type :doc), scanner uses the IMG-FMT
 argument for the intermediate representation before conversion to
 the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
-  (let ((size (cond ((eq :doc type)
+  (let ((size (cond ((eq :doc scan-type)
 		     (plist-get scanner-paper-sizes scanner-doc-papersize))
-		    ((eq :image type) scanner-image-size)
+		    ((eq :image scan-type) scanner-image-size)
 		    (t nil))))
     (-flatten (list (and scanner-device-name
 			 (list "-d" scanner-device-name))
-		    (-when-let (fmt (or img-fmt
-					(plist-get scanner-image-format type)))
-		      (concat "--format=" fmt))
+		    (concat "--format=" img-fmt)
 		    "-o" outfile
 		    (--map (pcase it
 			     ("--mode" (concat "--mode="
-					       (plist-get scanner-scan-mode type)))
+					       (plist-get scanner-scan-mode
+							  scan-type)))
 			     ("--resolution" (concat "--resolution="
 						     (number-to-string
 						      (plist-get scanner-resolution
-								 type))))
+								 scan-type))))
 			     ((and "-x" (guard size))
 			      (list "-x" (number-to-string (car size))))
 			     ((and "-y" (guard size))
@@ -334,19 +332,7 @@ extensions depending on the selected output options, see
 		  scanner-tesseract-switches
 		  scanner-tesseract-outputs)))
 
-(defun scanner--determine-image-format (extension)
-  "Determine image file format from EXTENSION.
-If the extension is unknown, return the default format."
-  (let ((ext (if extension (downcase extension) ""))
-	(known-ext '(("jpeg" . "jpeg")
-		     ("jpg" . "jpeg")
-		     ("png" . "png")
-		     ("pnm" . "pnm")
-		     ("tiff" . "tiff")
-		     ("tif" . "tiff"))))
-    (or (cdr (assoc ext known-ext))
-	(plist-get scanner-image-format :image))))
-
+;; FIXME write log output
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
 If no scanning device has been configured or the configured
@@ -394,7 +380,7 @@ MSG is a format string, with ARGS passed to ‘format’."
   (get-buffer-create "*Scanner*"))
 
 
-;; commands
+;;;; commands
 (defun scanner-select-papersize (size)
   "Select the papersize SIZE for document scanning."
   (interactive
@@ -554,27 +540,39 @@ If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFImage file name: ")
-  (let* ((fmt (scanner--determine-image-format filename))
-	 (fname-base (file-name-sans-extension filename))
-	 (fname-ext (if (file-name-extension filename)
-			(file-name-extension filename t)
-		      (concat "." fmt)))
-	 (num-scans (prefix-numeric-value nscans))
-	 (switches (scanner--ensure-init))
-	 (page-count 1))
+  (let ((derived-fmt (cdr (assoc (downcase (file-name-extension filename t))
+				 '((".jpeg" . "jpeg")
+				   (".jpg" . "jpeg")
+				   (".png" . "png")
+				   (".pnm" . "pnm")
+				   (".tiff" . "tiff")
+				   (".tif" . "tiff")))))
+	(num-scans (prefix-numeric-value nscans))
+	(switches (scanner--ensure-init))
+	(page-count 1))
     (cl-labels ((scanimage
 		 (multi-scan)
-		 (let* ((img-file (if multi-scan
+		 (let* ((img-fmt (or derived-fmt
+				     (plist-get scanner-image-format :image)))
+			(img-ext (if derived-fmt
+				     (file-name-extension filename t)
+				   (concat "."
+					   (plist-get scanner-image-format
+						      :image))))
+			(img-base (if derived-fmt
+					(file-name-sans-extension filename)
+				      filename))
+			(img-file (if multi-scan
 				      (prog1
-					  (concat fname-base "-"
+					  (concat img-base "-"
 						  (number-to-string page-count)
-						  fname-ext)
+						  img-ext)
 					(cl-incf page-count))
-				    (concat fname-base fname-ext)))
+				    (concat img-base img-ext)))
 			(scanimage-args (scanner--scanimage-args img-file
 								 :image
 								 switches
-								 fmt)))
+								 img-fmt)))
 		   (scanner--log "Scanning image to file \"%s\"" img-file)
 		   (make-process :name "Scanner (scanimage)"
 				 :command `(,scanner-scanimage-program
