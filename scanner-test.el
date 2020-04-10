@@ -5,7 +5,7 @@
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Created: 05. Feb 2020
-;; Version: 0.0
+;; Version: 0.1
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware, multimedia
 ;; URL: https://gitlab.com/rstocker/scanner.git
