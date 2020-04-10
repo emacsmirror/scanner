@@ -1,6 +1,6 @@
 ;;; scanner.el --- Scan documents and images -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 Raffael Stocker
+;; Copyright (C) 2020  Free Software Foundation, Inc
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
@@ -600,9 +600,5 @@ A numerical suffix is added to FILENAME for each scanned image."
   (scanner-scan-image (list 4) filename))
 
 (provide 'scanner)
-
-;; Local variables:
-;; eval: (flycheck-mode)
-;; End:
 
 ;;; scanner.el ends here
