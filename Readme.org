@@ -27,6 +27,8 @@
   file name or falls back to the configured default, see
   ~scanner-image-format~.  The prefix argument works as in document mode.
 
+  The scanning commands are also available in the Tools->Scanner menu.
+
   For both images and documents, you can customize the scan mode (e.g. "Color"
   or "Gray") if your scanning device supports it.
 

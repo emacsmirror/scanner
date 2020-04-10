@@ -1,4 +1,4 @@
-;;; scanner.el --- Scan documents and images -*- lexical-binding: t -*-
+;;; scanner.el --- Scan documents and images -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Raffael Stocker
 
@@ -54,6 +54,8 @@
 ;; file name or falls back to the configured default, see
 ;; ‘scanner-image-format’.  The prefix argument works as in document mode.
 ;;
+;; The scanning commands are also available in the Tools->Scanner menu.
+;;
 ;; For both images and documents, you can customize the scan mode
 ;; (e.g. "Color" or "Gray") if your scanning device supports it.
 ;;
@@ -66,7 +68,7 @@
 
 (require 'dash)
 (require 'cl-lib)
-(require 'subr-x)
+(eval-when-compile (require 'subr-x))
 (require 'menu-bar)
 
 
@@ -283,7 +285,7 @@ name, the device type, and the vendor and model names."
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
     (setq scanner--detected-devices
-	  (--filter (eql 3 (length it))
+	  (--filter (= 3 (length it))
 		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
 
 (defun scanner--scanimage-args (outfile scan-type switches img-fmt)
@@ -332,7 +334,6 @@ extensions depending on the selected output options, see
 		  scanner-tesseract-switches
 		  scanner-tesseract-outputs)))
 
-;; FIXME write log output
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
 If no scanning device has been configured or the configured
@@ -351,9 +352,9 @@ available options."
 				      nil nil nil "-n"
 				      "-d" scanner-device-name)))
       (let ((num-devices (length (scanner--detect-devices))))
-	(cond ((eql 0 num-devices)
+	(cond ((= 0 num-devices)
 	       (user-error "No scanning device was found"))
-	      ((eql 1 num-devices)
+	      ((= 1 num-devices)
 	       (setq scanner-device-name (caar scanner--detected-devices)))
 	      (t (call-interactively #'scanner-select-device)))))
     (with-temp-buffer
@@ -375,6 +376,7 @@ MSG is a format string, with ARGS passed to ‘format’."
     (goto-char (point-max))
     (insert (apply #'format msg args) "\n")))
 
+;; FIXME use special mode in the log buffer
 (defun scanner--log-buffer ()
   "Return scanner log buffer or create it."
   (get-buffer-create "*Scanner*"))
