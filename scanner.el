@@ -383,6 +383,7 @@ MSG is a format string, with ARGS passed to ‘format’."
 
 
 ;;;; commands
+;;;###autoload
 (defun scanner-select-papersize (size)
   "Select the papersize SIZE for document scanning."
   (interactive
@@ -393,6 +394,7 @@ MSG is a format string, with ARGS passed to ‘format’."
 			   (completing-read "Papersize: " choices nil t))))))
   (setq scanner-doc-papersize size))
 
+;;;###autoload
 (defun scanner-select-languages (languages)
   "Select LANGUAGES for optical character recognition."
   (interactive
@@ -401,6 +403,7 @@ MSG is a format string, with ARGS passed to ‘format’."
      (list (completing-read-multiple "Languages: " langs nil t))))
   (setq scanner-tesseract-languages languages))
 
+;;;###autoload
 (defun scanner-select-outputs (outputs)
   "Select OUTPUTS for tesseract."
   (interactive
@@ -408,16 +411,19 @@ MSG is a format string, with ARGS passed to ‘format’."
      (list (completing-read-multiple "Outputs: " configs nil t))))
   (setq scanner-tesseract-outputs outputs))
 
+;;;###autoload
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
   (interactive "NImage scan resolution: ")
   (plist-put scanner-resolution :image resolution))
 
+;;;###autoload
 (defun scanner-set-document-resolution (resolution)
   "Set the RESOLUTION for scanning documents."
   (interactive "NDocument scan resolution: ")
   (plist-put scanner-resolution :doc resolution))
 
+;;;###autoload
 (defun scanner-select-device (device)
   "Select a scanning DEVICE.
 If a prefix argument is supplied, force auto-detection.
@@ -521,6 +527,7 @@ available, ask for a selection interactively."
 		    (concat doc-file))
       (scanimage))))
 
+;;;###autoload
 (defun scanner-scan-multi-doc (filename)
   "Scan a multi-page document, writing them to FILENAME."
   (interactive "FDocument file name: ")
@@ -593,6 +600,7 @@ available, ask for a selection interactively."
 			  (run-at-time scanner-scan-delay nil #'scanimage t))))))
       (scanimage (or (> num-scans 1) (consp nscans))))))
 
+;;;###autoload
 (defun scanner-scan-multi-images (filename)
   "Scan multiple images, writing them to FILENAME.
 A numerical suffix is added to FILENAME for each scanned image."
