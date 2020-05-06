@@ -281,7 +281,7 @@ ignored, but something may not work as expected."))
 
 Each entry of the list contains three elements: the SANE device
 name, the device type, and the vendor and model names."
-  (let ((scanners (process-lines scanner-scanimage-program "-f" "%d|%t|%v %m")))
+  (let ((scanners (process-lines scanner-scanimage-program "-f" "%d|%t|%v %m%n")))
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
     (setq scanner--detected-devices
