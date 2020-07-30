@@ -10,8 +10,6 @@
 ;; Keywords: hardware, multimedia
 ;; URL: https://gitlab.com/rstocker/scanner.git
 
-;; This file is NOT part of GNU Emacs
-
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or (at
@@ -107,7 +105,7 @@ the second is the height in mm."
   "Document paper size.
 The value must be one of the keys in the paper sizes list."
   :type '(restricted-sexp :match-alternatives
-			  ((lambda (k) (plist-member scanner-paper-sizes k)))))
+						  ((lambda (k) (plist-member scanner-paper-sizes k)))))
 
 (defcustom scanner-image-size
   '(200 250)
@@ -141,8 +139,8 @@ widget's values and the elements of SET."
   (let ((values (widget-value widget)))
     (unless (cl-subsetp values set :test #'string=)
       (widget-put widget :error (format error-msg
-					(mapconcat #'identity values ", ")
-					(mapconcat #'identity set ", ")))
+										(mapconcat #'identity values ", ")
+										(mapconcat #'identity set ", ")))
       widget)))
 
 (defun scanner--validate-languages (widget)
@@ -150,7 +148,7 @@ widget's values and the elements of SET."
   (scanner--widget-validate-subset
    "Unknown language(s): %s; available are: %s" widget
    (cdr (process-lines scanner-tesseract-program
-		       "--list-langs"))))
+					   "--list-langs"))))
 
 (defcustom scanner-tesseract-languages
   '("eng")
@@ -200,7 +198,7 @@ If nil, attempt auto-detection.  Note that some devices, like USB
 scanners, may receive a different name every time they are
 plugged in.  For these, auto-detection will always be done."
   :type '(restricted-sexp :match-alternatives
-			  (stringp 'nil)))
+						  (stringp 'nil)))
 
 (defcustom scanner-scan-delay
   3
@@ -214,42 +212,42 @@ plugged in.  For these, auto-detection will always be done."
   (let ((map (make-sparse-keymap)))
     (define-key map [languages]
       '(menu-item "Select languages" scanner-select-languages
-		  :key-sequence nil
-		  :help "Select languages for OCR."))
+				  :key-sequence nil
+				  :help "Select languages for OCR."))
     (define-key map [outputs]
       '(menu-item "Select document outputs" scanner-select-outputs
-		  :key-sequence nil
-		  :help "Select document output formats."))
+				  :key-sequence nil
+				  :help "Select document output formats."))
     (define-key map [papersize]
       '(menu-item "Select paper size" scanner-select-papersize
-		  :key-sequence nil
-		  :help "Select a paper size for document scanning."))
+				  :key-sequence nil
+				  :help "Select a paper size for document scanning."))
     (define-key map [img-res]
       '(menu-item "Set image resolution" scanner-set-image-resolution
-		  :key-sequence nil
-		  :help "Set the resolution for image scanning."))
+				  :key-sequence nil
+				  :help "Set the resolution for image scanning."))
     (define-key map [doc-res]
       '(menu-item "Set document resolution" scanner-set-document-resolution
-		  :key-sequence nil
-		  :help "Set the resolution for document scanning."))
+				  :key-sequence nil
+				  :help "Set the resolution for document scanning."))
     (define-key map [select-dev]
       '(menu-item "Select scanning device" scanner-select-device
-		  :key-sequence nil
-		  :help "Select a scanning device."))
+				  :key-sequence nil
+				  :help "Select a scanning device."))
     (define-key map [seperator]
       '(menu-item "--"))
     (define-key map [image-multi]
       '(menu-item "Scan multiple images" scanner-scan-multi-images
-		  :key-sequence nil))
+				  :key-sequence nil))
     (define-key map [image]
       '(menu-item "Scan an image" scanner-scan-image
-		  :key-sequence nil))
+				  :key-sequence nil))
     (define-key map [document-multi]
       '(menu-item "Scan a multi-page document" scanner-scan-multi-doc
-		  :key-sequence nil))
+				  :key-sequence nil))
     (define-key map [document]
       '(menu-item "Scan a document" scanner-scan-document
-		  :key-sequence nil))
+				  :key-sequence nil))
     map)
   "The scanner menu map.")
 
@@ -285,8 +283,8 @@ name, the device type, and the vendor and model names."
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
     (setq scanner--detected-devices
-	  (--filter (= 3 (length it))
-		    (mapcar (lambda (x) (split-string x "|")) scanners)))))
+		  (--filter (= 3 (length it))
+					(mapcar (lambda (x) (split-string x "|")) scanners)))))
 
 (defun scanner--scanimage-args (outfile scan-type switches img-fmt)
   "Construct the argument list for scanimage(1).
@@ -300,27 +298,27 @@ the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
   (let ((size (cond ((eq :doc scan-type)
-		     (plist-get scanner-paper-sizes scanner-doc-papersize))
-		    ((eq :image scan-type) scanner-image-size)
-		    (t nil))))
+					 (plist-get scanner-paper-sizes scanner-doc-papersize))
+					((eq :image scan-type) scanner-image-size)
+					(t nil))))
     (-flatten (list (and scanner-device-name
-			 (list "-d" scanner-device-name))
-		    (concat "--format=" img-fmt)
-		    "-o" outfile
-		    (--map (pcase it
-			     ("--mode" (concat "--mode="
-					       (plist-get scanner-scan-mode
-							  scan-type)))
-			     ("--resolution" (concat "--resolution="
-						     (number-to-string
-						      (plist-get scanner-resolution
-								 scan-type))))
-			     ((and "-x" (guard size))
-			      (list "-x" (number-to-string (car size))))
-			     ((and "-y" (guard size))
-			      (list "-y" (number-to-string (cadr size)))))
-			   switches)
-		    scanner-scanimage-switches))))
+						 (list "-d" scanner-device-name))
+					(concat "--format=" img-fmt)
+					"-o" outfile
+					(--map (pcase it
+							 ("--mode" (concat "--mode="
+											   (plist-get scanner-scan-mode
+														  scan-type)))
+							 ("--resolution" (concat "--resolution="
+													 (number-to-string
+													  (plist-get scanner-resolution
+																 scan-type))))
+							 ((and "-x" (guard size))
+							  (list "-x" (number-to-string (car size))))
+							 ((and "-y" (guard size))
+							  (list "-y" (number-to-string (cadr size)))))
+						   switches)
+					scanner-scanimage-switches))))
 
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
@@ -329,10 +327,10 @@ output files.  Note that tesseract automatically adds file name
 extensions depending on the selected output options, see
 ‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
-		  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
-		  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
-		  scanner-tesseract-switches
-		  scanner-tesseract-outputs)))
+				  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
+				  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
+				  scanner-tesseract-switches
+				  scanner-tesseract-outputs)))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
@@ -344,29 +342,29 @@ This function checks the SANE backend of the selected device
 against the required options.  The return value is a list of the
 available options."
   (let ((-compare-fn #'string=)
-	(switches-re (eval-when-compile
-		       (regexp-opt scanner--device-specific-switches t)))
-	opts)
+		(switches-re (eval-when-compile
+					   (regexp-opt scanner--device-specific-switches t)))
+		opts)
     (unless (and scanner-device-name
-		 (eql 0 (call-process scanner-scanimage-program
-				      nil nil nil "-n"
-				      "-d" scanner-device-name)))
+				 (eql 0 (call-process scanner-scanimage-program
+									  nil nil nil "-n"
+									  "-d" scanner-device-name)))
       (let ((num-devices (length (scanner--detect-devices))))
-	(cond ((= 0 num-devices)
-	       (user-error "No scanning device was found"))
-	      ((= 1 num-devices)
-	       (setq scanner-device-name (caar scanner--detected-devices)))
-	      (t (call-interactively #'scanner-select-device)))))
+		(cond ((= 0 num-devices)
+			   (user-error "No scanning device was found"))
+			  ((= 1 num-devices)
+			   (setq scanner-device-name (caar scanner--detected-devices)))
+			  (t (call-interactively #'scanner-select-device)))))
     (with-temp-buffer
       (apply #'call-process scanner-scanimage-program nil t nil "-A"
-	     (and scanner-device-name (list "-d" scanner-device-name)))
+			 (and scanner-device-name (list "-d" scanner-device-name)))
       (goto-char (point-min))
       (while (re-search-forward switches-re nil t)
-	(push (match-string 1) opts)))
+		(push (match-string 1) opts)))
     (-when-let (missing (-difference scanner--device-specific-switches
-				     opts))
+									 opts))
       (scanner--log "Some required options are not supported by the device: %S"
-		    missing))
+					missing))
     (nreverse opts)))
 
 (defun scanner--log (msg &rest args)
@@ -388,10 +386,10 @@ MSG is a format string, with ARGS passed to ‘format’."
   "Select the papersize SIZE for document scanning."
   (interactive
    (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
-						(substring (symbol-name x) 1)))
-				    scanner-paper-sizes))))
+												(substring (symbol-name x) 1)))
+									scanner-paper-sizes))))
      (list (intern (concat ":"
-			   (completing-read "Papersize: " choices nil t))))))
+						   (completing-read "Papersize: " choices nil t))))))
   (setq scanner-doc-papersize size))
 
 ;;;###autoload
@@ -399,7 +397,7 @@ MSG is a format string, with ARGS passed to ‘format’."
   "Select LANGUAGES for optical character recognition."
   (interactive
    (let ((langs (cdr (process-lines scanner-tesseract-program
-				    "--list-langs"))))
+									"--list-langs"))))
      (list (completing-read-multiple "Languages: " langs nil t))))
   (setq scanner-tesseract-languages languages))
 
@@ -434,15 +432,15 @@ The selected device will be used for any future scan until a new
 selection is made."
   (interactive
    (let* ((devices (if current-prefix-arg
-		       (scanner--detect-devices)
-		     (or scanner--detected-devices
-			 (scanner--detect-devices))))
-	  (choices (mapcar (lambda (dev)
-			     (concat (caddr dev) " (" (car dev) ")"))
-			   devices)))
+					   (scanner--detect-devices)
+					 (or scanner--detected-devices
+						 (scanner--detect-devices))))
+		  (choices (mapcar (lambda (dev)
+							 (concat (caddr dev) " (" (car dev) ")"))
+						   devices)))
      (list (cadr (split-string
-		  (completing-read "Select scanning device: " choices nil t)
-		  "(" t ")")))))
+				  (completing-read "Select scanning device: " choices nil t)
+				  "(" t ")")))))
   (setq scanner-device-name device))
 
 ;;;###autoload
@@ -461,71 +459,75 @@ attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFDocument file name: ")
   (let ((doc-file (file-name-sans-extension filename))
-	(num-pages (prefix-numeric-value npages))
-	(fmt (plist-get scanner-image-format :doc))
-	(switches (scanner--ensure-init))
-	(file-list '())
-	(fl-file nil))
+		(num-pages (prefix-numeric-value npages))
+		(fmt (plist-get scanner-image-format :doc))
+		(switches (scanner--ensure-init))
+		(file-list '())
+		(fl-file nil))
     (cl-labels ((scanimage
-		 ()
-		 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
-			(scanimage-args (scanner--scanimage-args img-file
-								 :doc
-								 switches
-								 fmt)))
-		   (push img-file file-list)
-		   (make-process :name "Scanner (scanimage)"
-				 :command `(,scanner-scanimage-program
-					    ,@scanimage-args)
-				 :sentinel #'scan-or-process
-				 :stderr (scanner--log-buffer))))
-		(scan-or-process
-		 (process event)
-		 (condition-case err
-		     (let ((ev (string-trim event)))
-		       (unless (string= "finished" ev)
-			 (error "%s: %s" process ev))
-		       (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
-						 (scanimage)
-					       (tesseract)))
-			     ((> num-pages 1)
-			      (cl-decf num-pages)
-			      (run-at-time scanner-scan-delay nil #'scanimage))
-			     (t (tesseract))))
-		   (error
-		    (cleanup)
-		    (signal (car err) (cdr err)))))
-		(tesseract
-		 ()
-		 (unless scanner-reverse-pages
-		   (setq file-list (nreverse file-list)))
-		 (setq fl-file (make-temp-file "scanlist" nil ".txt"
-					       (mapconcat #'identity
-							  file-list
-							  "\n")))
-		 (let ((tesseract-args (scanner--tesseract-args fl-file
-								doc-file)))
-		   (scanner--log "")   ; make sure logs are properly sequenced
-		   (make-process :name "Scanner (tesseract)"
-				 :command `(,scanner-tesseract-program
-					    ,@tesseract-args)
-				 :sentinel #'finish
-				 :stderr (scanner--log-buffer))))
-		(finish
-		 (process event)
-		 (unwind-protect
-		     (let ((ev (string-trim event)))
-		       (unless (string= "finished" ev)
-			 (error "%s: %s" process ev)))
-		   (cleanup)))
-		(cleanup
-		 ()
-		 (and file-list (dolist (file file-list)
-				  (delete-file file)))
-		 (and fl-file (delete-file fl-file))))
-      (scanner--log "Scanning document to file(s) \"%s.*\""
-		    (concat doc-file))
-      (scanimage))))
+				 ()
+				 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
+						(scanimage-args (scanner--scanimage-args img-file
+																 :doc
+																 switches
+																 fmt)))
+				   (push img-file file-list)
+				   (make-process :name "Scanner (scanimage)"
+								 :command `(,scanner-scanimage-program
+											,@scanimage-args)
+								 :sentinel #'scan-or-process
+								 :stderr (scanner--log-buffer))))
+				(scan-or-process
+				 (process event)
+				 (condition-case err
+					 (let ((ev (string-trim event)))
+					   (unless (string= "finished" ev)
+						 (error "%s: %s" process ev))
+					   (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
+												 (scanimage)
+											   (tesseract)))
+							 ((> num-pages 1)
+							  (cl-decf num-pages)
+							  (run-at-time scanner-scan-delay nil #'scanimage))
+							 (t (tesseract))))
+				   (error
+					(cleanup)
+					(signal (car err) (cdr err)))))
+				(tesseract
+				 ()
+				 (unless scanner-reverse-pages
+				   (setq file-list (nreverse file-list)))
+				 (setq fl-file (make-temp-file "scanlist" nil ".txt"
+											   (mapconcat #'identity
+														  file-list
+														  "\n")))
+				 (let ((tesseract-args (scanner--tesseract-args fl-file
+																doc-file)))
+				   (scanner--log "")   ; make sure logs are properly sequenced
+				   (make-process :name "Scanner (tesseract)"
+								 :command `(,scanner-tesseract-program
+											,@tesseract-args)
+								 :sentinel #'finish
+								 :stderr (scanner--log-buffer))))
+				(finish
+				 (process event)
+				 (unwind-protect
+					 (let ((ev (string-trim event)))
+					   (unless (string= "finished" ev)
+						 (error "%s: %s" process ev)))
+				   (cleanup)))
+				(cleanup
+				 ()
+				 (and file-list (dolist (file file-list)
+								  (delete-file file)))
+				 (and fl-file (delete-file fl-file))))
+	  (if (and (file-exists-p filename)
+			   (not (y-or-n-p (format "File ‘%s’ exists; overwrite?"
+									  filename))))
+		  nil
+		(scanner--log "Scanning document to file(s) \"%s.*\""
+					  (concat doc-file))
+		(scanimage)))))
 
 ;;;###autoload
 (defun scanner-scan-multi-doc (filename)
@@ -550,54 +552,58 @@ attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFImage file name: ")
   (let ((derived-fmt (cdr (assoc (downcase (file-name-extension filename t))
-				 '((".jpeg" . "jpeg")
-				   (".jpg" . "jpeg")
-				   (".png" . "png")
-				   (".pnm" . "pnm")
-				   (".tiff" . "tiff")
-				   (".tif" . "tiff")))))
-	(num-scans (prefix-numeric-value nscans))
-	(switches (scanner--ensure-init))
-	(page-count 1))
+								 '((".jpeg" . "jpeg")
+								   (".jpg" . "jpeg")
+								   (".png" . "png")
+								   (".pnm" . "pnm")
+								   (".tiff" . "tiff")
+								   (".tif" . "tiff")))))
+		(num-scans (prefix-numeric-value nscans))
+		(switches (scanner--ensure-init))
+		(page-count 1))
     (cl-labels ((scanimage
-		 (multi-scan)
-		 (let* ((img-fmt (or derived-fmt
-				     (plist-get scanner-image-format :image)))
-			(img-ext (if derived-fmt
-				     (file-name-extension filename t)
-				   (concat "."
-					   (plist-get scanner-image-format
-						      :image))))
-			(img-base (if derived-fmt
-					(file-name-sans-extension filename)
-				      filename))
-			(img-file (if multi-scan
-				      (prog1
-					  (concat img-base "-"
-						  (number-to-string page-count)
-						  img-ext)
-					(cl-incf page-count))
-				    (concat img-base img-ext)))
-			(scanimage-args (scanner--scanimage-args img-file
-								 :image
-								 switches
-								 img-fmt)))
-		   (scanner--log "Scanning image to file \"%s\"" img-file)
-		   (make-process :name "Scanner (scanimage)"
-				 :command `(,scanner-scanimage-program
-					    ,@scanimage-args)
-				 :sentinel #'scan-or-finish
-				 :stderr (scanner--log-buffer))))
-		(scan-or-finish
-		 (process event)
-		 (let ((ev (string-trim event)))
-		   (unless (string= "finished" ev)
-		     (error "%s: %s" process ev))
-		   (cond ((consp nscans) (when (y-or-n-p "Scan another page? ")
-					   (scanimage t)))
-			 ((> num-scans 1)
-			  (cl-decf num-scans)
-			  (run-at-time scanner-scan-delay nil #'scanimage t))))))
+				 (multi-scan)
+				 (let* ((img-fmt (or derived-fmt
+									 (plist-get scanner-image-format :image)))
+						(img-ext (if derived-fmt
+									 (file-name-extension filename t)
+								   (concat "."
+										   (plist-get scanner-image-format
+													  :image))))
+						(img-base (if derived-fmt
+									  (file-name-sans-extension filename)
+									filename))
+						(img-file (if multi-scan
+									  (prog1
+										  (concat img-base "-"
+												  (number-to-string page-count)
+												  img-ext)
+										(cl-incf page-count))
+									(concat img-base img-ext)))
+						(scanimage-args (scanner--scanimage-args img-file
+																 :image
+																 switches
+																 img-fmt)))
+				   (if (and (file-exists-p img-file)
+							(not (y-or-n-p (format "File ‘%s’ exists; overwrite?"
+												   img-file))))
+					   nil
+					 (scanner--log "Scanning image to file \"%s\"" img-file)
+					 (make-process :name "Scanner (scanimage)"
+								   :command `(,scanner-scanimage-program
+											  ,@scanimage-args)
+								   :sentinel #'scan-or-finish
+								   :stderr (scanner--log-buffer)))))
+				(scan-or-finish
+				 (process event)
+				 (let ((ev (string-trim event)))
+				   (unless (string= "finished" ev)
+					 (error "%s: %s" process ev))
+				   (cond ((consp nscans) (when (y-or-n-p "Scan another page? ")
+										   (scanimage t)))
+						 ((> num-scans 1)
+						  (cl-decf num-scans)
+						  (run-at-time scanner-scan-delay nil #'scanimage t))))))
       (scanimage (or (> num-scans 1) (consp nscans))))))
 
 ;;;###autoload
