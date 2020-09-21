@@ -372,7 +372,8 @@ available options."
 MSG is a format string, with ARGS passed to ‘format’."
   (with-current-buffer (scanner--log-buffer)
     (goto-char (point-max))
-    (insert (apply #'format msg args) "\n")))
+    (insert (apply #'format (concat "[" (current-time-string) "]: " msg) args)
+			"\n")))
 
 ;; FIXME use special mode in the log buffer
 (defun scanner--log-buffer ()
@@ -472,6 +473,7 @@ available, ask for a selection interactively."
 																 switches
 																 fmt)))
 				   (push img-file file-list)
+				   (scanner--log (format "scanimage arguments: %s" scanimage-args))
 				   (make-process :name "Scanner (scanimage)"
 								 :command `(,scanner-scanimage-program
 											,@scanimage-args)
@@ -503,7 +505,7 @@ available, ask for a selection interactively."
 														  "\n")))
 				 (let ((tesseract-args (scanner--tesseract-args fl-file
 																doc-file)))
-				   (scanner--log "")   ; make sure logs are properly sequenced
+				   (scanner--log (format "tesseract arguments: %s" tesseract-args))
 				   (make-process :name "Scanner (tesseract)"
 								 :command `(,scanner-tesseract-program
 											,@tesseract-args)
@@ -589,6 +591,8 @@ available, ask for a selection interactively."
 												   img-file))))
 					   nil
 					 (scanner--log "Scanning image to file \"%s\"" img-file)
+					 (scanner--log (format "scanimage arguments: %s"
+										   scanimage-args))
 					 (make-process :name "Scanner (scanimage)"
 								   :command `(,scanner-scanimage-program
 											  ,@scanimage-args)
