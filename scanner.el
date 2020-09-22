@@ -381,6 +381,23 @@ MSG is a format string, with ARGS passed to ‘format’."
   (get-buffer-create "*Scanner*"))
 
 
+
+(defun scanner--confirm-filenames (file &optional formats)
+  "Confirm that FILE using the provided list of FORMATS may be overwritten.
+If no formats are provided, FILE is used as-is.
+Confirmation is positive (‘t’) either when the files do not exist or
+the user allows overwriting all of them.  Otherwise it is nil."
+  (cl-flet ((confirm
+			 (filename)
+			 (or (not (file-exists-p filename))
+				 (y-or-n-p (format "File ‘%s’ exists; overwrite? " filename)))))
+	(if (consp formats)
+		(and (confirm (concat (file-name-sans-extension file) "." (car formats)))
+			 (if (cdr formats)
+				 (scanner--confirm-filenames file (cdr formats))
+			   t))
+	  (confirm file))))
+
 ;;;; commands
 ;;;###autoload
 (defun scanner-select-papersize (size)
@@ -523,12 +540,8 @@ available, ask for a selection interactively."
 				 (and file-list (dolist (file file-list)
 								  (delete-file file)))
 				 (and fl-file (delete-file fl-file))))
-	  (if (and (file-exists-p filename)
-			   (not (y-or-n-p (format "File ‘%s’ exists; overwrite?"
-									  filename))))
-		  nil
-		(scanner--log "Scanning document to file(s) \"%s.*\""
-					  (concat doc-file))
+	  (when (scanner--confirm-filenames doc-file scanner-tesseract-outputs)
+		(scanner--log "Scanning document to file(s) \"%s.*\"" doc-file)
 		(scanimage)))))
 
 ;;;###autoload
@@ -586,10 +599,7 @@ available, ask for a selection interactively."
 																 :image
 																 switches
 																 img-fmt)))
-				   (if (and (file-exists-p img-file)
-							(not (y-or-n-p (format "File ‘%s’ exists; overwrite?"
-												   img-file))))
-					   nil
+				   (when (scanner--confirm-filenames img-file)
 					 (scanner--log "Scanning image to file \"%s\"" img-file)
 					 (scanner--log (format "scanimage arguments: %s"
 										   scanimage-args))
