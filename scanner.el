@@ -630,3 +630,8 @@ A numerical suffix is added to FILENAME for each scanned image."
 (provide 'scanner)
 
 ;;; scanner.el ends here
+
+;; Local Variables:
+;; tab-width: 4
+;; indent-tabs-mode: t
+;; End:
