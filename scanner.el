@@ -384,9 +384,9 @@ MSG is a format string, with ARGS passed to ‘format’."
 
 (defun scanner--confirm-filenames (file &optional formats)
   "Confirm that FILE using the provided list of FORMATS may be overwritten.
-If no formats are provided, FILE is used as-is.
-Confirmation is positive (‘t’) either when the files do not exist or
-the user allows overwriting all of them.  Otherwise it is nil."
+If no formats are provided, FILE is used as-is.  Return t either
+when the files do not exist or the user allows overwriting all of
+them.  Otherwise, return nil."
   (cl-flet ((confirm
 			 (filename)
 			 (or (not (file-exists-p filename))
