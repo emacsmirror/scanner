@@ -143,22 +143,35 @@ widget's values and the elements of SET."
 										(mapconcat #'identity set ", ")))
       widget)))
 
+(defcustom scanner-tessdata-dir
+  (or (getenv "TESSDATA_PREFIX")
+	  "/usr/share/")
+  "Tesseract data directory prefix."
+  :type '(string))
+
+(defcustom scanner-tesseract-configdir
+  (if scanner-tessdata-dir
+	  (concat (file-name-as-directory scanner-tessdata-dir) "tessdata/configs/")
+	"/usr/share/tessdata/configs/")
+  "Config file directory for tesseract."
+  :type '(string))
+
 (defun scanner--validate-languages (widget)
   "Validate the language selection in customization WIDGET."
+  (cl-assert scanner-tesseract-program)
   (scanner--widget-validate-subset
    "Unknown language(s): %s; available are: %s" widget
-   (cdr (process-lines scanner-tesseract-program
-					   "--list-langs"))))
+   (condition-case err
+	   (cdr (process-lines scanner-tesseract-program
+						   "--list-langs"
+						   "--tessdata-dir"
+						   scanner-tessdata-dir))
+	 (error (error "No language definitions found %s" (cdr err))))))
 
 (defcustom scanner-tesseract-languages
   '("eng")
   "List of languages passed to tesseract(1) for OCR."
   :type '(repeat :validate scanner--validate-languages string))
-
-(defcustom scanner-tesseract-configdir
-  "/usr/share/tessdata/configs/"
-  "Config file directory for tesseract."
-  :type '(string))
 
 (defun scanner--validate-outputs (widget)
   "Validate the output selection in customization WIDGET."
@@ -279,6 +292,7 @@ ignored, but something may not work as expected."))
 
 Each entry of the list contains three elements: the SANE device
 name, the device type, and the vendor and model names."
+  (cl-assert scanner-scanimage-program)
   (let ((scanners (process-lines scanner-scanimage-program "-f" "%d|%t|%v %m%n")))
     ;; attempt to filter out any spurious error output or other non-relevant
     ;; stuff
@@ -341,6 +355,7 @@ a device selection.
 This function checks the SANE backend of the selected device
 against the required options.  The return value is a list of the
 available options."
+  (cl-assert scanner-scanimage-program)
   (let ((-compare-fn #'string=)
 		(switches-re (eval-when-compile
 					   (regexp-opt scanner--device-specific-switches t)))
@@ -414,8 +429,15 @@ them.  Otherwise, return nil."
 (defun scanner-select-languages (languages)
   "Select LANGUAGES for optical character recognition."
   (interactive
-   (let ((langs (cdr (process-lines scanner-tesseract-program
-									"--list-langs"))))
+   (let ((langs (condition-case err
+					(progn
+					  (cl-assert scanner-tesseract-program)
+					  (cdr (process-lines scanner-tesseract-program
+										  "--list-langs"
+										  "--tessdata-dir"
+										  scanner-tessdata-dir)))
+				  (error
+				   (error "Could not query language list %s" (cdr err))))))
      (list (completing-read-multiple "Languages: " langs nil t))))
   (setq scanner-tesseract-languages languages))
 
@@ -423,7 +445,10 @@ them.  Otherwise, return nil."
 (defun scanner-select-outputs (outputs)
   "Select OUTPUTS for tesseract."
   (interactive
-   (let ((configs (directory-files scanner-tesseract-configdir nil "[^.]")))
+   (let ((configs (condition-case err
+					  (directory-files scanner-tesseract-configdir nil "[^.]")
+					(error
+					 (error "Could not find output configurations %s" (cdr err))))))
      (list (completing-read-multiple "Outputs: " configs nil t))))
   (setq scanner-tesseract-outputs outputs))
 
@@ -476,6 +501,8 @@ If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFDocument file name: ")
+  (cl-assert scanner-scanimage-program)
+  (cl-assert scanner-tesseract-program)
   (let ((doc-file (file-name-sans-extension filename))
 		(num-pages (prefix-numeric-value npages))
 		(fmt (plist-get scanner-image-format :doc))
@@ -566,6 +593,7 @@ If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
 available, ask for a selection interactively."
   (interactive "P\nFImage file name: ")
+  (cl-assert scanner-scanimage-program)
   (let ((derived-fmt (cdr (assoc (downcase (file-name-extension filename t))
 								 '((".jpeg" . "jpeg")
 								   (".jpg" . "jpeg")
