@@ -338,6 +338,12 @@ simply dropped."
 						   switches)
 					scanner-scanimage-switches))))
 
+(defconst scanner--tesseract-v4 "4")
+
+(defun scanner--tesseract-version ()
+  "Determine the version of tesseract."
+  (cadr (split-string (car (process-lines scanner-tesseract-program "--version")))))
+
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
 INPUT is the input file name, OUTPUT-BASE is the basename for the
@@ -346,7 +352,10 @@ extensions depending on the selected output options, see
 ‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
 				  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
-				  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
+				  (unless (version< (scanner--tesseract-version)
+									scanner--tesseract-v4)
+					(list "--dpi" (number-to-string
+								   (plist-get scanner-resolution :doc))))
 				  scanner-tesseract-switches
 				  "--tessdata-dir"
 				  scanner-tessdata-dir

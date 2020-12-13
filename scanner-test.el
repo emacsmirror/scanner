@@ -144,8 +144,12 @@
 	(-compare-fn #'string=))
     (should (-is-infix-p '("-l" "eng+deu") (scanner--tesseract-args "infile"
 								    "outfile")))
-    (should (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
-								   "outfile")))
+    (let ((scanner--tesseract-v4 "0"))
+      (should (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
+								     "outfile"))))
+    (let ((scanner--tesseract-v4 "1000"))
+      (should-not (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
+								     "outfile"))))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt1"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt2"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "infile"))
