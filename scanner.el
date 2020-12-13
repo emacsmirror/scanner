@@ -164,8 +164,8 @@ widget's values and the elements of SET."
    (condition-case err
 	   (cdr (process-lines scanner-tesseract-program
 						   "--list-langs"
-						   "--tessdata-dir"
-						   scanner-tessdata-dir))
+						   (concat "--tessdata-dir="
+								   scanner-tessdata-dir)))
 	 (error (error "No language definitions found %s" (cdr err))))))
 
 (defcustom scanner-tesseract-languages
@@ -357,8 +357,7 @@ extensions depending on the selected output options, see
 					(list "--dpi" (number-to-string
 								   (plist-get scanner-resolution :doc))))
 				  scanner-tesseract-switches
-				  "--tessdata-dir"
-				  scanner-tessdata-dir
+				  (concat "--tessdata-dir=" scanner-tessdata-dir)
 				  scanner-tesseract-outputs)))
 
 (defun scanner--ensure-init ()
@@ -455,8 +454,8 @@ them.  Otherwise, return nil."
 					  (cl-assert scanner-tesseract-program)
 					  (cdr (process-lines scanner-tesseract-program
 										  "--list-langs"
-										  "--tessdata-dir"
-										  scanner-tessdata-dir)))
+										  (concat "--tessdata-dir="
+												  scanner-tessdata-dir))))
 				  (error
 				   (error "Could not query language list %s" (cdr err))))))
      (list (completing-read-multiple "Languages: " langs nil t))))

@@ -141,6 +141,7 @@
 	(scanner-tesseract-languages '("eng" "deu"))
 	(scanner-tesseract-switches '("--opt1" "--opt2"))
 	(scanner-tesseract-outputs '("out1" "out2"))
+	(scanner-tessdata-dir "/usr/share")
 	(-compare-fn #'string=))
     (should (-is-infix-p '("-l" "eng+deu") (scanner--tesseract-args "infile"
 								    "outfile")))
@@ -149,13 +150,17 @@
 								     "outfile"))))
     (let ((scanner--tesseract-v4 "1000"))
       (should-not (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
-								     "outfile"))))
+									 "outfile"))))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt1"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt2"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "infile"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "outfile"))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "out1"))
-    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "out2"))))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile") "out2"))
+    (should (-contains-p (scanner--tesseract-args "infile" "outfile")
+			 "--tessdata-dir=/usr/share"))
+    (should-not (-is-infix-p '("--tessdata-dir" "/usr/share")
+			     (scanner--tesseract-args "infile" "outfile")))))
 
 ;; Note: interactive commands are only tested for their non-interactive
 ;; behavior
