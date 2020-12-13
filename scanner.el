@@ -223,8 +223,16 @@ plugged in.  For these, auto-detection will always be done."
 ;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
+    (define-key map [image-size]
+      '(menu-item "Select image size" scanner-select-image-size
+				  :key-sequence nil
+				  :help "Select a size for image scanning."))
+    (define-key map [img-res]
+      '(menu-item "Set image resolution" scanner-set-image-resolution
+				  :key-sequence nil
+				  :help "Set the resolution for image scanning."))
     (define-key map [languages]
-      '(menu-item "Select languages" scanner-select-languages
+      '(menu-item "Select OCR languages" scanner-select-languages
 				  :key-sequence nil
 				  :help "Select languages for OCR."))
     (define-key map [outputs]
@@ -235,10 +243,6 @@ plugged in.  For these, auto-detection will always be done."
       '(menu-item "Select paper size" scanner-select-papersize
 				  :key-sequence nil
 				  :help "Select a paper size for document scanning."))
-    (define-key map [img-res]
-      '(menu-item "Set image resolution" scanner-set-image-resolution
-				  :key-sequence nil
-				  :help "Set the resolution for image scanning."))
     (define-key map [doc-res]
       '(menu-item "Set document resolution" scanner-set-document-resolution
 				  :key-sequence nil
@@ -426,6 +430,12 @@ them.  Otherwise, return nil."
      (list (intern (concat ":"
 						   (completing-read "Papersize: " choices nil t))))))
   (setq scanner-doc-papersize size))
+
+;;;###autoload
+(defun scanner-select-image-size (x y)
+  "Select the size for image scanning as X and Y dimensions."
+  (interactive "nImage size in x-dimension: \nnImage size in y-dimension: ")
+  (setq scanner-image-size (list x y)))
 
 ;;;###autoload
 (defun scanner-select-languages (languages)
