@@ -344,6 +344,8 @@ extensions depending on the selected output options, see
 				  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
 				  "--dpi" (number-to-string (plist-get scanner-resolution :doc))
 				  scanner-tesseract-switches
+				  "--tessdata-dir"
+				  scanner-tessdata-dir
 				  scanner-tesseract-outputs)))
 
 (defun scanner--ensure-init ()
