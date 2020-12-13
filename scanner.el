@@ -144,14 +144,19 @@ widget's values and the elements of SET."
       widget)))
 
 (defcustom scanner-tessdata-dir
-  (or (getenv "TESSDATA_PREFIX")
-	  "/usr/share/")
+  (let ((prefix (directory-file-name
+				 (getenv "TESSDATA_PREFIX"))))
+	(if prefix
+		(if (string= (file-name-nondirectory prefix) "tessdata/")
+			prefix
+		  (concat (file-name-as-directory prefix) "tessdata/"))
+	  "/usr/share/tessdata/"))
   "Tesseract data directory prefix."
   :type '(string))
 
 (defcustom scanner-tesseract-configdir
   (if scanner-tessdata-dir
-	  (concat (file-name-as-directory scanner-tessdata-dir) "tessdata/configs/")
+	  (concat (file-name-as-directory scanner-tessdata-dir) "configs/")
 	"/usr/share/tessdata/configs/")
   "Config file directory for tesseract."
   :type '(string))
