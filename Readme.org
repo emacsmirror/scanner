@@ -10,7 +10,8 @@
   provided by =scanimage(1)= for image mode and =tesseract(1)= for document
   mode.  The scanner package uses =tesseract(1)= to provide optical character
   recognition (OCR).  You can select the language plugins with
-  =scanner-tesseract-languages=.
+  =scanner-tesseract-languages=.  See also the remark about the data
+  directories below.
 
   In document mode, you can scan one or multiple pages that are then written
   in a customizable output format, e.g. (searchable) PDF or text, or whatever
@@ -32,10 +33,18 @@
   For both images and documents, you can customize the scan mode (e.g. "Color"
   or "Gray") if your scanning device supports it.
 
-  Finally, you can pass additional options to the backends using the
-  customization variables =scanner-scanimage-switches= and
-  =scanner-tesseract-switches=.  The former variable is helpful for tuning
-  brightness and contrast, for instance.
+  You can pass additional options to the backends using the customization
+  variables =scanner-scanimage-switches= and =scanner-tesseract-switches=.
+  The former variable is helpful for tuning brightness and contrast, for
+  instance.
+
+  Finally, the customization options =scanner-tessdata-dir= and
+  =scanner-tessdata-configdir= must be set to point to tesseract's data
+  directory containing the language definitions (usually something like
+  =/usr/share/tessdata/=) and tesseract's configs directory containing the
+  output configurations (usually something like
+  =/usr/share/tessdata/configs/=).
+
 
   
 * Bugs
