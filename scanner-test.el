@@ -58,41 +58,29 @@
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
     ;; known values are included with their switches
-    (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args "file"
-								    :image
+    (should (-is-infix-p '("-d" "devname") (scanner--scanimage-args :image
 								    switches
 								    "jpeg")))
-    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file"
-								 :image
-								 switches
-								 "jpeg")))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			 "--format=jpeg"))
     ;; device-specific options are not included in the argument list
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
-						      "jpeg")
+    (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			     "--mode"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
-						      "jpeg")
-			     "--resolution"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
-						      "jpeg")
+    (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg") 			     "--resolution"))
+    (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			     "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :image switches
-						      "jpeg")
+    (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			     "-y"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+    (should-not (-contains-p (scanner--scanimage-args :doc switches "jpeg")
 			     "-x"))
-    (should-not (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+    (should-not (-contains-p (scanner--scanimage-args :doc switches "jpeg")
 			     "-y"))
     ;; without format and device name, these are not in the args list
     (let ((scanner-image-format nil)
 	  (scanner-device-name nil))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image switches
-							"jpeg")
+      (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			       "--format="))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image
-							switches "jpeg")
+      (should-not (-contains-p (scanner--scanimage-args :image switches "jpeg")
 			       "-d"))))
   ;; image args list with device-specific args
   (let ((switches '("--resolution" "-x" "-y" "--mode"))
@@ -102,38 +90,62 @@
 	(scanner-paper-sizes '(:a4 (210 297)))
 	(scanner-image-size '(200 250))
 	(-compare-fn #'string=))
-    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :image
-								 switches "jpeg")))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args  :image switches "jpeg")
 			 "--format=jpeg"))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args  :image switches "jpeg")
 			 "--mode=Color"))
-    (should (-contains-p (scanner--scanimage-args "file" :image switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args  :image switches "jpeg")
 			 "--resolution=600"))
-    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args "file" :doc
-								switches "jpeg")))
-    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args "file" :doc
-								switches "jpeg")))
-    (should (-is-infix-p '("-x" "200") (scanner--scanimage-args "file" :image
-								switches "jpeg")))
-    (should (-is-infix-p '("-y" "250") (scanner--scanimage-args "file" :image
-								switches "jpeg")))
-    (should (-is-infix-p '("-o" "file") (scanner--scanimage-args "file" :doc
+    (should (-is-infix-p '("-x" "210") (scanner--scanimage-args  :doc
 								 switches "jpeg")))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+    (should (-is-infix-p '("-y" "297") (scanner--scanimage-args  :doc
+								 switches "jpeg")))
+    (should (-is-infix-p '("-x" "200") (scanner--scanimage-args  :image
+								 switches "jpeg")))
+    (should (-is-infix-p '("-y" "250") (scanner--scanimage-args  :image
+								 switches "jpeg")))
+    (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
 			 "--format=jpeg"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
 			 "--mode=Gray"))
-    (should (-contains-p (scanner--scanimage-args "file" :doc switches "jpeg")
+    (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
 			 "--resolution=300"))
     (let ((scanner-image-size nil))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image
-							switches "jpeg")
+      (should-not (-contains-p (scanner--scanimage-args  :image
+							 switches "jpeg")
 			       "-x"))
-      (should-not (-contains-p (scanner--scanimage-args "file" :image
+      (should-not (-contains-p (scanner--scanimage-args :image
 							switches "jpeg")
 			       "-y")))))
 
+(ert-deftest scanner-test-make-scanimage-command ()
+  "Test the scanimage command construction."
+  (let ((scanner--scanimage-version-o-switch "0"))
+    (should (-is-infix-p '("-o" "outfile")
+			 (scanner--make-scanimage-command
+			  (scanner--scanimage-args :doc nil "pnm")
+			  "outfile")))
+    (should-not (-is-infix-p (list shell-file-name shell-command-switch)
+			 (scanner--make-scanimage-command
+			  (scanner--scanimage-args :doc nil "pnm")
+			  "outfile")))
+    (should-not (string-match " > outfile$"
+			  (car (last (scanner--make-scanimage-command
+				      (scanner--scanimage-args :doc nil "pnm")
+				      "outfile"))))))
+  (let ((scanner--scanimage-version-o-switch "10"))
+    (should-not (-is-infix-p '("-o" "outfile")
+			     (scanner--make-scanimage-command
+			      (scanner--scanimage-args :doc nil "pnm")
+			      "outfile")))
+    (should (-is-infix-p (list shell-file-name shell-command-switch)
+			 (scanner--make-scanimage-command
+			  (scanner--scanimage-args :doc nil "pnm")
+			  "outfile")))
+    (should (string-match " > outfile$"
+			  (car (last (scanner--make-scanimage-command
+				      (scanner--scanimage-args :doc nil "pnm")
+				      "outfile")))))))
 
 (ert-deftest scanner-test-tesseract-args ()
   "Test the argument list construction for tesseract."
@@ -145,10 +157,10 @@
 	(-compare-fn #'string=))
     (should (-is-infix-p '("-l" "eng+deu") (scanner--tesseract-args "infile"
 								    "outfile")))
-    (let ((scanner--tesseract-v4 "0"))
+    (let ((scanner--tesseract-version-dpi-switch "0"))
       (should (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
 								     "outfile"))))
-    (let ((scanner--tesseract-v4 "1000"))
+    (let ((scanner--tesseract-version-dpi-switch "1000"))
       (should-not (-is-infix-p '("--dpi" "300") (scanner--tesseract-args "infile"
 									 "outfile"))))
     (should (-contains-p (scanner--tesseract-args "infile" "outfile") "--opt1"))

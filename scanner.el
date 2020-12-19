@@ -317,11 +317,11 @@ name, the device type, and the vendor and model names."
 		  (--filter (= 3 (length it))
 					(mapcar (lambda (x) (split-string x "|")) scanners)))))
 
-(defun scanner--scanimage-args (outfile scan-type switches img-fmt)
+(defun scanner--scanimage-args (scan-type switches img-fmt)
   "Construct the argument list for scanimage(1).
-OUTFILE is the output filename, SCAN-TYPE is either ‘:image’ or
-‘:doc’, SWITCHES is a list of available device-dependent options
-and IMG-FMT is the output image format.
+SCAN-TYPE is either ‘:image’ or ‘:doc’, SWITCHES is a list of
+available device-dependent options and IMG-FMT is the output
+image format.
 
 When scanning documents (scan-type :doc), scanner uses the IMG-FMT
 argument for the intermediate representation before conversion to
@@ -335,7 +335,6 @@ simply dropped."
     (-flatten (list (and scanner-device-name
 						 (list "-d" scanner-device-name))
 					(concat "--format=" img-fmt)
-					"-o" outfile
 					(--map (pcase it
 							 ("--mode" (concat "--mode="
 											   (plist-get scanner-scan-mode
@@ -351,11 +350,45 @@ simply dropped."
 						   switches)
 					scanner-scanimage-switches))))
 
-(defconst scanner--tesseract-v4 "4")
+(defun scanner--program-version (program version-switch)
+  "Determine the version of PROGRAM using VERSION-SWITCH."
+  (condition-case err
+	  (let ((version-re "[.[:digit:]]+$")
+			(version-output (car (process-lines program version-switch))))
+		(when (string-match version-re version-output)
+		  (match-string 0 version-output)))
+	(error
+	 (error "Could not determine program version: %s" (cadr err)))))
 
-(defun scanner--tesseract-version ()
-  "Determine the version of tesseract."
-  (cadr (split-string (car (process-lines scanner-tesseract-program "--version")))))
+(defconst scanner--scanimage-version-o-switch "1.0.28"
+  "Minimum scanimage(1) version to have the --output-file switch.")
+
+;; Old (< 1.0.28) versions of scanimage don't have an --output-file switch.
+;; For these versions, we have to use the shell to redirect the output.  As
+;; this is not very elegant, this is supposed to be removed in the future,
+;; once everyone has caught up.
+(defun scanner--make-scanimage-command (args outfile)
+  "Make the scanimage command using ARGS and OUTFILE.
+The arguments list ARGS should be supplied by ‘scanner--scanimage-args’ and
+the output file name is given by OUTFILE.
+This function checks the installed version of scanimage(1) and
+returns a command directly callable by ‘make-process’.  For old versions of
+scanimage this will construct a shell command."
+  (if (version< (scanner--program-version scanner-scanimage-program "-V")
+				scanner--scanimage-version-o-switch)
+	  (list shell-file-name
+			shell-command-switch
+			(concat scanner-scanimage-program
+					" "
+					(mapconcat 'identity
+							   args
+							   " ")
+					" > "
+					outfile))
+	`(,scanner-scanimage-program "-o" ,outfile ,@args)))
+
+(defconst scanner--tesseract-version-dpi-switch "4.0.0"
+  "Minimum tesseract(1) version to have the --dpi switch.")
 
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
@@ -365,8 +398,10 @@ extensions depending on the selected output options, see
 ‘scanner-tesseract-outputs’."
   (-flatten (list input output-base
 				  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
-				  (unless (version< (scanner--tesseract-version)
-									scanner--tesseract-v4)
+				  (unless (version< (scanner--program-version
+									 scanner-tesseract-program
+									 "--version")
+									scanner--tesseract-version-dpi-switch)
 					(list "--dpi" (number-to-string
 								   (plist-get scanner-resolution :doc))))
 				  scanner-tesseract-switches
@@ -546,15 +581,16 @@ available, ask for a selection interactively."
     (cl-labels ((scanimage
 				 ()
 				 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
-						(scanimage-args (scanner--scanimage-args img-file
-																 :doc
+						(scanimage-args (scanner--scanimage-args :doc
 																 switches
-																 fmt)))
+																 fmt))
+						(scanimage-command (scanner--make-scanimage-command
+											scanimage-args img-file)))
 				   (push img-file file-list)
-				   (scanner--log (format "scanimage arguments: %s" scanimage-args))
+				   (scanner--log (format "scanimage command: %s"
+										 scanimage-command))
 				   (make-process :name "Scanner (scanimage)"
-								 :command `(,scanner-scanimage-program
-											,@scanimage-args)
+								 :command scanimage-command
 								 :sentinel #'scan-or-process
 								 :stderr (scanner--log-buffer))))
 				(scan-or-process
@@ -583,7 +619,8 @@ available, ask for a selection interactively."
 														  "\n")))
 				 (let ((tesseract-args (scanner--tesseract-args fl-file
 																doc-file)))
-				   (scanner--log (format "tesseract arguments: %s" tesseract-args))
+				   (scanner--log (format "tesseract arguments: %s"
+										 tesseract-args))
 				   (make-process :name "Scanner (tesseract)"
 								 :command `(,scanner-tesseract-program
 											,@tesseract-args)
@@ -657,17 +694,17 @@ available, ask for a selection interactively."
 												  img-ext)
 										(cl-incf page-count))
 									(concat img-base img-ext)))
-						(scanimage-args (scanner--scanimage-args img-file
-																 :image
+						(scanimage-args (scanner--scanimage-args :image
 																 switches
-																 img-fmt)))
+																 img-fmt))
+						(scanimage-command (scanner--make-scanimage-command
+											scanimage-args img-file)))
 				   (when (scanner--confirm-filenames img-file)
 					 (scanner--log "Scanning image to file \"%s\"" img-file)
-					 (scanner--log (format "scanimage arguments: %s"
-										   scanimage-args))
+					 (scanner--log (format "scanimage command: %s"
+										 scanimage-command))
 					 (make-process :name "Scanner (scanimage)"
-								   :command `(,scanner-scanimage-program
-											  ,@scanimage-args)
+								   :command scanimage-command
 								   :sentinel #'scan-or-finish
 								   :stderr (scanner--log-buffer)))))
 				(scan-or-finish
