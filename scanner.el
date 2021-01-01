@@ -111,9 +111,11 @@ the second is the height in mm."
 (defcustom scanner-doc-papersize
   :a4
   "Document paper size.
-The value must be one of the keys in the paper sizes list."
+The value must be one of the keys in the paper sizes list, or ‘:whatever’ to
+use whatever scanimage thinks is right."
   :type '(restricted-sexp :match-alternatives
-						  ((lambda (k) (plist-member scanner-paper-sizes k)))))
+						  ((lambda (k) (or (plist-member scanner-paper-sizes k)
+									  (eq k :whatever))))))
 
 (defcustom scanner-image-size
   '(200 250)
@@ -481,9 +483,12 @@ them.  Otherwise, return nil."
 (defun scanner-select-papersize (size)
   "Select the papersize SIZE for document scanning."
   (interactive
-   (let ((choices (delq nil (mapcar (lambda (x) (and (keywordp x)
-												(substring (symbol-name x) 1)))
-									scanner-paper-sizes))))
+   (let ((choices (append (delq nil
+								(mapcar (lambda (x)
+										  (and (keywordp x)
+											   (substring (symbol-name x) 1)))
+										scanner-paper-sizes))
+						  '("whatever"))))
      (list (intern (concat ":"
 						   (completing-read "Papersize: " choices nil t))))))
   (setq scanner-doc-papersize size))

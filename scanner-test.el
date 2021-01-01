@@ -116,6 +116,13 @@
 			       "-x"))
       (should-not (-contains-p (scanner--scanimage-args :image
 							switches "jpeg")
+			       "-y")))
+    (let ((scanner-doc-papersize :whatever))
+      (should-not (-contains-p (scanner--scanimage-args  :doc
+							 switches "jpeg")
+			       "-x"))
+      (should-not (-contains-p (scanner--scanimage-args :doc
+							switches "jpeg")
 			       "-y")))))
 
 (ert-deftest scanner-test-make-scanimage-command ()
