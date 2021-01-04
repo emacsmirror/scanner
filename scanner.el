@@ -697,13 +697,24 @@ performing OCR."
 					 (let ((ev (string-trim event)))
 					   (unless (string= "finished" ev)
 						 (error "%s: %s" process ev))
-					   (cond ((consp npages) (if (y-or-n-p "Scan another page? ")
-												 (scanimage)
-											   (tesseract)))
+					   (cond ((consp npages)
+							  (if (y-or-n-p "Scan another page? ")
+								  (scanimage)
+								(if scanner-use-unpaper
+									(unpaper)
+								  (tesseract))))
 							 ((> num-pages 1)
 							  (cl-decf num-pages)
 							  (run-at-time scanner-scan-delay nil #'scanimage))
 							 (t (tesseract))))
+				   (error
+					(cleanup)
+					(signal (car err) (cdr err)))))
+				(unpaper
+				 ()
+				 (cl-assert scanner-unpaper-program)
+				 (condition-case err
+					 ()
 				   (error
 					(cleanup)
 					(signal (car err) (cdr err)))))
