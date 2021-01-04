@@ -529,13 +529,15 @@ them.  Otherwise, return nil."
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
   (interactive "NImage scan resolution: ")
-  (plist-put scanner-resolution :image resolution))
+  (setq scanner-resolution
+		(plist-put scanner-resolution :image resolution)))
 
 ;;;###autoload
 (defun scanner-set-document-resolution (resolution)
   "Set the RESOLUTION for scanning documents."
   (interactive "NDocument scan resolution: ")
-  (plist-put scanner-resolution :doc resolution))
+  (setq scanner-resolution
+		(plist-put scanner-resolution :doc resolution)))
 
 ;;;###autoload
 (defun scanner-select-device (device)
