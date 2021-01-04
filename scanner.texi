@@ -1,0 +1,481 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename scanner.info
+@c try the time-stamp package for version stuff
+@set VERSION 0.3
+@settitle Scanner Manual @value{VERSION}
+@syncodeindex vr cp
+@syncodeindex fn cp
+@documentencoding UTF-8
+@c %**end of header
+@copying
+This is the @emph{Scanner Manual}, corresponding to version @value{VERSION}.
+
+Copyright @copyright{} 2021 Free Software Foundation, Inc.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+
+A copy of the license is also available from the Free Software
+Foundation Web site at @url{https://www.gnu.org/licenses/fdl.html}.
+
+@end quotation
+
+The document was typeset with
+@uref{http://www.texinfo.org/, GNU Texinfo}.
+
+@end copying
+
+@dircategory Emacs
+@direntry
+* Scanner: (scanner)Document and image scanning in GNU Emacs
+@end direntry
+
+
+@titlepage
+@title Scanner
+@subtitle Document and image scanning in GNU Emacs, version @value{VERSION}
+@author Raffael Stocker
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@c Output the table of the contents at the beginning.
+@contents
+
+@ifnottex
+@node Top
+@top Scanner
+
+
+@insertcopying
+@end ifnottex
+
+@c Generate the nodes for this menu with `C-c C-u C-a'.
+@menu
+* Overview::
+* User Options::
+* Improving Scan Quality::
+* Reporting Bugs::
+* Hacking::
+* GNU Free Documentation License::
+* Index::
+@end menu
+
+@c Update all node entries with `C-c C-u C-n'.
+@c Insert new nodes with `C-c C-c n'.
+@node Overview
+@chapter Overview
+@cindex Overview
+
+@menu
+* Introduction::
+* Principle of Operation::
+* Basic Setup::
+* Scanning Documents::
+* Scanning Images::
+@end menu
+
+@node Introduction
+@section Introduction
+@cindex Introduction
+
+If you want to scan a document at high quality with @acronym{OCR,
+optical character recognition} and not use one of the available free
+GUI programs, there are several things you might have to do:
+@itemize
+
+@item
+use a program like @command{scanimage} to obtain an image file from
+your scanner,
+
+@item
+enhance the image quality using a post-processing tool like
+@command{unpaper}, and
+
+@item
+generate a PDF or text file with OCR software like @command{tesseract}.
+@end itemize
+
+Although this is not difficult to do in principle, each of these
+programs requires an elaborate incantation to produce adequate output:
+@itemize
+
+@item
+the scan resolution must be set to something appropriate for later OCR
+(usually 300 to 600 dpi,)
+
+@item
+the page size must be defined,
+
+@item
+perhaps some offsets must be added to page borders,
+
+@item
+the document may have to be rotated,
+
+@item
+some scan artifacts, like shadows, may have to be removed,
+
+@item
+the page may need deskewing,
+
+@item
+the language for OCR must be selected,
+
+@item
+@dots{}
+@end itemize
+
+Luckily, many of these items change rarely or not at all.  Scanner
+uses the customization system of GNU Emacs
+(@pxref{Customization,,,emacs,The GNU Emacs Manual}) to remember the
+necessary settings and takes care of processing using the
+abovementioned programs.
+
+
+@node Principle of Operation
+@section Principle of Operation
+@cindex principle of operation
+@cindex operation, principle of
+
+@c sequence of program calls
+@c use of temporary files
+@c re-entrancy (but maybe mangled log)
+@c log buffer for diagnosis
+@c data and configuration files/directories needed by the programs
+@c use of more than one device: select new device between scans
+
+
+@node Basic Setup
+@section Basic Setup
+@cindex basic setup
+@cindex setup, basic
+@cindex configuration, basic
+@cindex installation
+
+Basic setup items:
+- program executables
+- paper/image size
+- nothing with unpaper
+- file formats and outputs
+
+Just name the important items, refer to the detailed chapter for more
+information.
+
+@node Scanning Documents
+@section Scanning Documents
+@cindex scanning documents
+@cindex documents, scanning
+
+describe functions for document scanning
+refer also to menu entries
+
+
+@table @kbd
+@item M-x scanner-scan-document
+Scan a document.
+@end table
+
+@node Scanning Images
+@section Scanning Images
+@cindex scanning images
+@cindex images, scanning
+
+describe functions for image scanning
+
+@anchor{scanner-scan-image}
+@defun scanner-scan-image nscans filename
+@end defun
+
+
+
+@node User Options
+@chapter User Options
+@cindex user options
+
+This chapter lists all the available user options.  All of these
+options can be edited using the customization system of GNU Emacs,
+which is advisable as then basic sanity checks are carried out.  For a
+number of options, interactive commands are available that simplify
+the customization at run time, but don't save the changed values
+between Emacs sessions.  These functions are also available from the
+Scanner menu (@clicksequence{Tools @click{} Scanner}).
+
+@menu
+* General Options::
+* Options for scanimage::
+* Options for unpaper::
+* Options for tesseract::
+@end menu
+
+@node General Options
+@section General Options
+@cindex general options
+
+@table @kbd
+@item M-x scanner-set-image-resolution
+@item M-x scanner-set-document-resolution
+These commands interactively ask for a resolution (in @acronym{DPI,
+dots per inch}) to be used in subsequent image and document scans,
+respectively.  Note that these commands set @code{scanner-resolution}
+directly, but don't change the saved customization value, that is, a
+resolution set with these commands will not be remembered between
+Emacs sessions.
+
+These commands are available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Select image
+resolution}@*
+and@*
+@clicksequence{Tools @click{} Scanner @click{} Select
+document resolution}
+
+@item M-x scanner-select-papersize
+
+@item M-x scanner-select-device
+Select a device, possibly triggering auto-detection.
+
+@item C-u M-x scanner-select-device
+Select a device, forcing auto-detection.
+@end table
+
+
+
+@defopt scanner-resolution
+This option specifies the resolution in DPI used for image and
+document scans as a property list with the keys @code{:image} and
+@code{:doc}, respectively, and integers as values.  The default is:
+@lisp
+(:image 600 :doc 300)
+@end lisp
+The available resolutions depend on your device.
+@end defopt
+
+@defopt scanner-paper-sizes
+@end defopt
+
+@defopt scanner-doc-papersize
+@end defopt
+
+@defopt scanner-image-size
+This option specifies the size used in image scans as a list of width
+and height values in millimeters.  The default is
+@lisp
+(200 250)
+@end lisp
+for an image of 200@dmn{mm} width and 250@dmn{mm} height.  If set to
+nil, the size is determined by scanimage (usually the available scan
+area.)
+@end defopt
+
+@deffn {Interactive Command} scanner-select-image-size x y
+@end deffn
+
+@defopt scanner-scan-delay
+This option specifies the delay in seconds to wait between pages in a
+multi-page scan.  Set this to something large enough so you can feed
+the next sheet to your scanner before it starts scanning the next
+page.  The default is 3.
+@end defopt
+
+@defopt scanner-device-name
+The device name of the scanner as reported by scanimage.  The default
+is nil, which prompts Scanner to use scanimage for automatic
+detection.  The detected device will be stored in this variable and
+used for all subsequent scans, until a new detection is forced either
+by calling @code{scanner-select-device} with a prefix argument, or by
+this device becoming unavailable.
+
+Usually you need not customize this option as auto-detection should
+work just fine.
+@end defopt
+
+@defopt scanner-reverse-pages
+This option, when set to t, causes Scanner to reverse the order of the
+scanned pages in a document scan.  The default is nil.
+@end defopt
+
+@node Options for scanimage
+@section Options for scanimage
+@cindex options for scanimage
+
+Some of the options scanimage accepts (and Scanner uses) are
+device-dependent.  These options are marked as @emph{device-dependent}
+in their definitions.  To find out which options your scanner hardware
+offers, run @command{scanimage --help} with your scanner plugged in.
+This incantation should print a list of general and device-dependent
+options.
+
+@defopt scanner-scanimage-program
+This option specifies the path of scanimage.  The default is given by
+@lisp
+(executable-find "scanimage")
+@end lisp
+@end defopt
+
+@defopt scanner-scan-mode
+@emph{Device-dependent}@*
+This option specifies the scan modes for document and image scans.  It
+is a property list with the keys @code{:image} and @code{:doc}, for
+images and documents, respectively, and strings naming the scan modes
+as values.  For example,
+@lisp
+(:image "Color" :doc "Gray")
+@end lisp
+sets ``Color'' mode for image scans and ``Gray'' mode for document
+scans.  The default is to use ``Color'' for both image and document
+scans.
+
+The available scan modes depend on your device.  Usually, ``Lineart'',
+``Gray'', and ``Color'' are available.  For images you probably want
+``Color'', and for good OCR results in document scans, you should
+choose either ``Gray'' or ``Color''.
+@end defopt
+
+@defopt scanner-image-format
+This option sets the default format used by scanimage for image and
+document scans.  It is a property list similar to
+@var{scanner-scan-mode}.  For example, the default
+@lisp
+(:image "jpeg" :doc "pnm")
+@end lisp
+configures Scanner to use the JPEG format for image scans and the PNM
+format for document scans.  While document scans will always use the
+format specified with this option, you can override the format used in
+image scans with the appropriate file extension, see
+@ref{scanner-scan-image}.
+
+The supported formats are documented in the scanimage manual page.
+For example, version 1.0.31 of scanimage supports PNM, TIFF, PNG and
+JPEG. 
+
+Note that the document scan format specified with this option is an
+intermediate format, not the document format generated at the end of
+the whole process.  With the PNM format used in the example above, you
+can still have a PDF output, see @ref{scanner-tesseract-outputs}.
+
+If you use unpaper for post-processing before OCR in document scans,
+the format will silently be forced to PNM, as this is required by
+unpaper.
+@end defopt
+
+@defopt scanner-scanimage-switches
+You may find that additional switches to scanimage not covered by any
+of the above user options are necessary.  You can use
+@var{scanner-scanimage-switches} for these.  Specify the switches as a
+list of switch/value pairs, such as:
+@lisp
+("--switch1" "value1" "-s" "2")
+@end lisp
+The default is nil.
+
+For example, some devices may need some tweaking of brightness and
+contrast to provide adequate scans.  Something like
+@lisp
+("--brightness" "20" "--contrast" "50")
+@end lisp
+might do the trick.  Note, however, that the switches in this example
+are device-dependent.
+@end defopt
+
+
+@node Options for unpaper
+@section Options for unpaper
+@cindex options for unpaper
+
+@defopt scanner-unpaper-program
+@end defopt
+
+@defopt scanner-use-unpaper
+@end defopt
+
+@defopt scanner-unpaper-page-layout
+@end defopt
+
+@defopt scanner-unpaper-input-pages
+@end defopt
+
+@defopt scanner-unpaper-output-pages
+@end defopt
+
+@defopt scanner-unpaper-pre-rotation
+@end defopt
+
+@defopt scanner-unpaper-post-rotation
+@end defopt
+
+@defopt scanner-unpaper-pre-size
+@end defopt
+
+@defopt scanner-unpaper-post-size
+@end defopt
+
+@defopt scanner-unpaper-border
+@end defopt
+
+@defopt scanner-unpaper-switches
+@end defopt
+
+@node Options for tesseract
+@section Options for tesseract
+@cindex options for tesseract
+
+@defopt scanner-tessdata-dir
+@end defopt
+
+@defopt scanner-tesseract-configdir
+@end defopt
+
+@defopt scanner-tesseract-languages
+@end defopt
+
+@anchor{scanner-tesseract-outputs}
+@defopt scanner-tesseract-outputs
+@end defopt
+
+@defopt scanner-tesseract-switches
+@end defopt
+
+@node Improving Scan Quality
+@chapter Improving Scan Quality
+@cindex improving scan quality
+@cindex scan quality, improving
+@cindex quality, improving
+
+include tips for improving quality, ask for contributions
+
+
+
+@node Reporting Bugs
+@chapter Reporting Bugs
+
+Refer to @uref{https://www.gitlab.com/rstocker/scanner/}
+mention *Scanner* log buffer
+
+@node Hacking
+@chapter Hacking
+
+document internal functions and how they are used?
+
+@node GNU Free Documentation License
+@chapter GNU Free Documentation License
+@c Get fdl.texi from https://www.gnu.org/licenses/fdl.html
+@include fdl.texi
+
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@c combine indices
+
+@bye
+
+@c scanner.texi ends here
