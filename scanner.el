@@ -654,19 +654,31 @@ argument, e.g. ‘\\[universal-argument] 3
 
 If ‘scanner-device-name’ is nil or this device is unavailable,
 attempt auto-detection.  If more than one scanning device is
-available, ask for a selection interactively."
+available, ask for a selection interactively.
+
+If ‘scanner-use-unpaper’ is non-nil, silenty force the image
+format to \"pnm\" and post-process the scans using unpaper before
+performing OCR."
   (interactive "P\nFDocument file name: ")
   (cl-assert scanner-scanimage-program)
   (cl-assert scanner-tesseract-program)
   (let ((doc-file (file-name-sans-extension filename))
 		(num-pages (prefix-numeric-value npages))
-		(fmt (plist-get scanner-image-format :doc))
+		(fmt (if scanner-use-unpaper
+				 "pnm"
+			   (plist-get scanner-image-format :doc)))
 		(switches (scanner--ensure-init))
 		(file-list '())
-		(fl-file nil))
+		(fl-file nil)
+		(tmp-dir (make-temp-file "scanner" t))
+		(page-num 0))
     (cl-labels ((scanimage
 				 ()
-				 (let* ((img-file (make-temp-file "scanner" nil (concat "." fmt)))
+				 (let* ((img-file (concat (file-name-as-directory tmp-dir)
+										  "input"
+										  (number-to-string (cl-incf page-num))
+										  "."
+										  fmt))
 						(scanimage-args (scanner--scanimage-args :doc
 																 switches
 																 fmt))
@@ -699,7 +711,10 @@ available, ask for a selection interactively."
 				 ()
 				 (unless scanner-reverse-pages
 				   (setq file-list (nreverse file-list)))
-				 (setq fl-file (make-temp-file "scanlist" nil ".txt"
+				 (setq fl-file (make-temp-file (concat (file-name-as-directory
+														tmp-dir)
+													   "scanlist")
+											   nil ".txt"
 											   (mapconcat #'identity
 														  file-list
 														  "\n")))
@@ -721,9 +736,7 @@ available, ask for a selection interactively."
 				   (cleanup)))
 				(cleanup
 				 ()
-				 (and file-list (dolist (file file-list)
-								  (delete-file file)))
-				 (and fl-file (delete-file fl-file))))
+				 (and tmp-dir (delete-directory tmp-dir t))))
 	  (when (scanner--confirm-filenames doc-file scanner-tesseract-outputs)
 		(scanner--log "Scanning document to file(s) \"%s.*\"" doc-file)
 		(scanimage)))))
