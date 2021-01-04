@@ -341,10 +341,10 @@ simply dropped."
 							 ("--mode" (concat "--mode="
 											   (plist-get scanner-scan-mode
 														  scan-type)))
-							 ("--resolution" (concat "--resolution="
-													 (number-to-string
-													  (plist-get scanner-resolution
-																 scan-type))))
+							 ("--resolution"
+							  (concat "--resolution="
+									  (number-to-string
+									   (plist-get scanner-resolution scan-type))))
 							 ((and "-x" (guard size))
 							  (list "-x" (number-to-string (car size))))
 							 ((and "-y" (guard size))
@@ -382,9 +382,7 @@ scanimage this will construct a shell command."
 			shell-command-switch
 			(concat scanner-scanimage-program
 					" "
-					(mapconcat 'identity
-							   args
-							   " ")
+					(mapconcat 'identity args " ")
 					" > "
 					outfile))
 	`(,scanner-scanimage-program "-o" ,outfile ,@args)))
@@ -522,7 +520,8 @@ them.  Otherwise, return nil."
    (let ((configs (condition-case err
 					  (directory-files scanner-tesseract-configdir nil "[^.]")
 					(error
-					 (error "Could not find output configurations %s" (cdr err))))))
+					 (error "Could not find output configurations %s"
+							(cdr err))))))
      (list (completing-read-multiple "Outputs: " configs nil t))))
   (setq scanner-tesseract-outputs outputs))
 
