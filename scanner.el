@@ -235,7 +235,7 @@ plugged in.  For these, auto-detection will always be done."
 
 (defcustom scanner-scan-delay
   3
-  "Delay between document scans in multi-page mode."
+  "Delay in seconds between document scans in multi-page mode."
   :type '(number))
 
 
@@ -422,10 +422,10 @@ simply dropped."
 							 ("--mode" (concat "--mode="
 											   (plist-get scanner-scan-mode
 														  scan-type)))
-							 ("--resolution" (concat "--resolution="
-													 (number-to-string
-													  (plist-get scanner-resolution
-																 scan-type))))
+							 ("--resolution"
+							  (concat "--resolution="
+									  (number-to-string
+									   (plist-get scanner-resolution scan-type))))
 							 ((and "-x" (guard size))
 							  (list "-x" (number-to-string (car size))))
 							 ((and "-y" (guard size))
@@ -463,9 +463,7 @@ scanimage this will construct a shell command."
 			shell-command-switch
 			(concat scanner-scanimage-program
 					" "
-					(mapconcat 'identity
-							   args
-							   " ")
+					(mapconcat 'identity args " ")
 					" > "
 					outfile))
 	`(,scanner-scanimage-program "-o" ,outfile ,@args)))
@@ -603,7 +601,8 @@ them.  Otherwise, return nil."
    (let ((configs (condition-case err
 					  (directory-files scanner-tesseract-configdir nil "[^.]")
 					(error
-					 (error "Could not find output configurations %s" (cdr err))))))
+					 (error "Could not find output configurations %s"
+							(cdr err))))))
      (list (completing-read-multiple "Outputs: " configs nil t))))
   (setq scanner-tesseract-outputs outputs))
 
@@ -611,13 +610,15 @@ them.  Otherwise, return nil."
 (defun scanner-set-image-resolution (resolution)
   "Set the RESOLUTION for scanning images."
   (interactive "NImage scan resolution: ")
-  (plist-put scanner-resolution :image resolution))
+  (setq scanner-resolution
+		(plist-put scanner-resolution :image resolution)))
 
 ;;;###autoload
 (defun scanner-set-document-resolution (resolution)
   "Set the RESOLUTION for scanning documents."
   (interactive "NDocument scan resolution: ")
-  (plist-put scanner-resolution :doc resolution))
+  (setq scanner-resolution
+		(plist-put scanner-resolution :doc resolution)))
 
 ;;;###autoload
 (defun scanner-select-device (device)
