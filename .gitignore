@@ -12,3 +12,8 @@ TAGS
 *.png
 *.pdf
 *.txt
+*.aux
+*.cp
+*.cps
+*.toc
+*.info
