@@ -142,6 +142,11 @@ use whatever scanimage thinks is right."
   "Path and file name of the tesseract(1) program."
   :type '(string))
 
+(defcustom scanner-unpaper-program
+  (executable-find "unpaper")
+  "Path and file name of the unpaper(1) program."
+  :type '(string))
+
 (defun scanner--widget-validate-subset (error-msg widget set)
   "Issue ERROR-MSG if the value of WIDGET is a not subset of SET.
 ERROR-MSG is passed to ‘format’ with two string arguments: the
@@ -232,6 +237,82 @@ plugged in.  For these, auto-detection will always be done."
   3
   "Delay between document scans in multi-page mode."
   :type '(number))
+
+
+(defcustom scanner-use-unpaper
+  nil
+  "Use unpaper(1) for post-processing of the scans before OCR."
+  :type '(boolean))
+
+(defcustom scanner-unpaper-page-layout
+  "single"
+  "Page layout to assume in post-processing."
+  :type '(choice (const "single")
+				 (const "double")
+				 (const "none")))
+
+(defcustom scanner-unpaper-input-pages
+  1
+  "Input pages per sheet."
+  :type '(integer))
+
+(defcustom scanner-unpaper-output-pages
+  1
+  "Output pages per sheet."
+  :type '(integer))
+
+(defcustom scanner-unpaper-pre-rotation
+  nil
+  "Pre-rotation to apply before post-processing."
+  :type '(choice (const :tag "clockwise" 90)
+				 (const :tag "counter-clockwise" -90)
+				 (const :tag "none" nil)))
+
+(defcustom scanner-unpaper-post-rotation
+  nil
+  "Post-rotation to apply after post-processing."
+  :type '(choice (const :tag "clockwise" 90)
+				 (const :tag "counter-clockwise" -90)
+				 (const :tag "none" nil)))
+
+(defconst scanner--unpaper-sizes
+  '("a5" "a4" "a3" "letter" "legal" "a5-landscape" "a4-landscape"
+	"a3-landscape" "letter-landscape" "legal-landscape")
+  "Paper size names understood by unpaper.")
+
+(defcustom scanner-unpaper-pre-size
+  "a4"
+  "Change sheet size before post-processing.
+Either choose one of the pre-defined options (see
+‘scanner--unpaper-sizes’), or enter a list of width and height
+values as strings; e.g. ‘(\"21cm\" \"29.7cm\")’."
+  :type `(choice (list string string)
+				 ,@(mapcar (lambda (x) (list 'const x))
+						   scanner--unpaper-sizes)))
+
+(defcustom scanner-unpaper-post-size
+  "a4"
+  "Change sheet size after post-processing.
+Either choose one of the pre-defined options (see
+‘scanner--unpaper-sizes’), or enter a list of width and height
+values as strings; e.g. ‘(\"21cm\" \"29.7cm\")’."
+  :type `(choice (list string string)
+				 ,@(mapcar (lambda (x) (list 'const x))
+						   scanner--unpaper-sizes)))
+
+(defcustom scanner-unpaper-border
+  '(0 0 0 0)
+  "Define a border at the sheet edges to be set to white.
+The border is specified as a list of four integers (widths in
+pixels) for left, top, right, and bottom edge, respectively.
+This border is applied after deskewing and before automatic
+border-scan."
+  :type '(list integer integer integer integer))
+
+(defcustom scanner-unpaper-switches
+  '()
+  "Additional options to be passed to unpaper(1)."
+  :type '(repeat string))
 
 
 ;;;; menu
