@@ -230,7 +230,7 @@ plugged in.  For these, auto-detection will always be done."
 
 (defcustom scanner-scan-delay
   3
-  "Delay between document scans in multi-page mode."
+  "Delay in seconds between document scans in multi-page mode."
   :type '(number))
 
 
