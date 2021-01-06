@@ -89,6 +89,7 @@
 	(scanner-doc-papersize :a4)
 	(scanner-paper-sizes '(:a4 (210 297)))
 	(scanner-image-size '(200 250))
+	(scanner-image-format '(:doc "pnm" :image "tiff"))
 	(-compare-fn #'string=))
     (should (-contains-p (scanner--scanimage-args  :image switches "jpeg")
 			 "--format=jpeg"))
@@ -105,7 +106,7 @@
     (should (-is-infix-p '("-y" "250") (scanner--scanimage-args  :image
 								 switches "jpeg")))
     (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
-			 "--format=jpeg"))
+			 "--format=pnm"))
     (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
 			 "--mode=Gray"))
     (should (-contains-p (scanner--scanimage-args  :doc switches "jpeg")
@@ -136,7 +137,7 @@
 			 (scanner--make-scanimage-command
 			  (scanner--scanimage-args :doc nil "pnm")
 			  "outfile")))
-    (should-not (string-match " > outfile$"
+    (should-not (string-match " > outfile\\'"
 			  (car (last (scanner--make-scanimage-command
 				      (scanner--scanimage-args :doc nil "pnm")
 				      "outfile"))))))
@@ -149,7 +150,7 @@
 			 (scanner--make-scanimage-command
 			  (scanner--scanimage-args :doc nil "pnm")
 			  "outfile")))
-    (should (string-match " > outfile$"
+    (should (string-match " > outfile\\'"
 			  (car (last (scanner--make-scanimage-command
 				      (scanner--scanimage-args :doc nil "pnm")
 				      "outfile")))))))

@@ -400,6 +400,83 @@ name, the device type, and the vendor and model names."
 		  (--filter (= 3 (length it))
 					(mapcar (lambda (x) (split-string x "|")) scanners)))))
 
+(defmacro scanner--when-switch (switch args form)
+  "Evaluate FORM if SWITCH is in ‘(plist-get ARGS :device-dependent)’."
+  (declare (indent 2))
+  `(when (member ,switch (plist-get ,args :device-dependent))
+	 ,form))
+
+(defun scanner--size (scan-type)
+  "Return the size information appropriate for SCAN-TYPE.
+SCAN-TYPE may be either ‘:doc’ or ‘:image’.  If no size is
+configured, return nil."
+  (cl-case scan-type
+	(:doc (plist-get scanner-paper-sizes
+					 scanner-doc-papersize))
+	(:image scanner-image-size)
+	(t nil)))
+
+(defvar scanner--scanimage-argspec
+  (list "-d" 'scanner-device-name
+		"--format=" (lambda (args)
+					  (if (eq :doc (plist-get args :scan-type))
+						  (plist-get scanner-image-format :doc)
+						(or (plist-get args :img-fmt)
+							(plist-get scanner-image-format :image))))
+		"--mode=" (lambda (args)
+					(scanner--when-switch "--mode" args
+					  (plist-get scanner-scan-mode
+								 (plist-get args :scan-type))))
+		"--resolution=" (lambda (args)
+						  (scanner--when-switch "--resolution" args
+							(number-to-string
+							 (plist-get scanner-resolution
+										(plist-get args :scan-type)))))
+		"-x" (lambda (args)
+			   (scanner--when-switch "-x" args
+				 (-when-let (size (scanner--size (plist-get args :scan-type)))
+				   (number-to-string (car size)))))
+		"-y" (lambda (args)
+			   (scanner--when-switch "-y" args
+				 (-when-let (size (scanner--size (plist-get args :scan-type)))
+				   (number-to-string (cadr size)))))
+		'user-switches 'scanner-scanimage-switches)
+  "The arguments list specification for scanimage.")
+
+(defun scanner--program-args (argspec &rest args)
+  "Return an arguments list as specified in ARGSPEC, assuming ARGS.
+
+ARGSPEC is expected to be a list of the form:
+   (\"--switch1\" 'argument1
+    \"--switch2=\" (lambda (args) \"bar\"))
+    \"--never-used\" nil
+    'symbol \"--always-there\"
+    'other-symbol (\"baz\" \"quux\"))
+
+Assuming ‘argument1’ is ‘\"foo\"’, this specification will be
+translated into the arguments list:
+   (\"--switch1\" \"foo\" \"--switch2=bar\" \"--always-there\" \"baz\"
+   \"quux\")"
+  (cl-labels ((make-option (sw val)
+						   (when val
+							 (if (stringp sw)
+								 (if (string-match ".=\\'" sw)
+									 (list (concat sw val))
+								   (list sw val))
+							   (list val))))
+			  (process-option (switch value)
+							  (cond ((functionp value)
+									 (make-option switch (funcall value args)))
+									((and (symbolp value) (boundp value))
+									 (make-option switch (symbol-value value)))
+									(value (make-option switch value))
+									(t nil)))
+			  (process-argspec (spec)
+							   (when spec
+								 (nconc (process-option (car spec) (cadr spec))
+										(process-argspec (cddr spec))))))
+	(-flatten (process-argspec argspec))))
+
 (defun scanner--scanimage-args (scan-type switches img-fmt)
   "Construct the argument list for scanimage(1).
 SCAN-TYPE is either ‘:image’ or ‘:doc’, SWITCHES is a list of
@@ -411,27 +488,8 @@ argument for the intermediate representation before conversion to
 the document format.  If any of the required options from
 ‘scanner--device-specific-switches’ are unavailable, they are
 simply dropped."
-  (let ((size (cond ((eq :doc scan-type)
-					 (plist-get scanner-paper-sizes scanner-doc-papersize))
-					((eq :image scan-type) scanner-image-size)
-					(t nil))))
-    (-flatten (list (and scanner-device-name
-						 (list "-d" scanner-device-name))
-					(concat "--format=" img-fmt)
-					(--map (pcase it
-							 ("--mode" (concat "--mode="
-											   (plist-get scanner-scan-mode
-														  scan-type)))
-							 ("--resolution"
-							  (concat "--resolution="
-									  (number-to-string
-									   (plist-get scanner-resolution scan-type))))
-							 ((and "-x" (guard size))
-							  (list "-x" (number-to-string (car size))))
-							 ((and "-y" (guard size))
-							  (list "-y" (number-to-string (cadr size)))))
-						   switches)
-					scanner-scanimage-switches))))
+  (scanner--program-args scanner--scanimage-argspec :img-fmt img-fmt
+						 :scan-type scan-type :device-dependent switches))
 
 (defun scanner--program-version (program version-switch)
   "Determine the version of PROGRAM using VERSION-SWITCH."
@@ -471,24 +529,30 @@ scanimage this will construct a shell command."
 (defconst scanner--tesseract-version-dpi-switch "4.0.0"
   "Minimum tesseract(1) version to have the --dpi switch.")
 
+(defvar scanner--tesseract-argspec
+  (list 'input-files (lambda (args) (plist-get args :input))
+		'output-filename (lambda (args) (plist-get args :output))
+		"-l" (lambda (_)
+			   (mapconcat #'identity scanner-tesseract-languages "+"))
+		"--dpi" (lambda (_)
+				  (unless (version< (scanner--program-version
+									 scanner-tesseract-program
+									 "--version")
+									scanner--tesseract-version-dpi-switch)
+					(number-to-string (plist-get scanner-resolution :doc))))
+		"--tessdata-dir" 'scanner-tessdata-dir
+		'user-switches 'scanner-tesseract-switches
+		'outputs 'scanner-tesseract-outputs)
+  "The arguments list specification for tesseract.")
+
 (defun scanner--tesseract-args (input output-base)
   "Construct the argument list for ‘tesseract(1)’.
 INPUT is the input file name, OUTPUT-BASE is the basename for the
 output files.  Note that tesseract automatically adds file name
 extensions depending on the selected output options, see
 ‘scanner-tesseract-outputs’."
-  (-flatten (list input output-base
-				  "-l" (mapconcat #'identity scanner-tesseract-languages "+")
-				  (unless (version< (scanner--program-version
-									 scanner-tesseract-program
-									 "--version")
-									scanner--tesseract-version-dpi-switch)
-					(list "--dpi" (number-to-string
-								   (plist-get scanner-resolution :doc))))
-				  scanner-tesseract-switches
-				  "--tessdata-dir"
-				  scanner-tessdata-dir
-				  scanner-tesseract-outputs)))
+  (scanner--program-args scanner--tesseract-argspec :input input
+						 :output output-base))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
