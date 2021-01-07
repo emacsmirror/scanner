@@ -1,6 +1,6 @@
 ;;; scanner-test.el --- Scan documents and images -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020  Free Software Foundation, Inc
+;; Copyright (C) 2020, 2021  Free Software Foundation, Inc
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
