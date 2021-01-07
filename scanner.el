@@ -238,14 +238,13 @@ plugged in.  For these, auto-detection will always be done."
   "Delay in seconds between document scans in multi-page mode."
   :type '(number))
 
-
 (defcustom scanner-use-unpaper
   nil
   "Use unpaper(1) for post-processing of the scans before OCR."
   :type '(boolean))
 
 (defcustom scanner-unpaper-page-layout
-  "single"
+  "none"
   "Page layout to assume in post-processing."
   :type '(choice (const "single")
 				 (const "double")
@@ -254,12 +253,14 @@ plugged in.  For these, auto-detection will always be done."
 (defcustom scanner-unpaper-input-pages
   1
   "Input pages per sheet."
-  :type '(integer))
+  :type '(choice (const 1)
+				 (const 2)))
 
 (defcustom scanner-unpaper-output-pages
   1
   "Output pages per sheet."
-  :type '(integer))
+  :type '(choice (const 1)
+				 (const 2)))
 
 (defcustom scanner-unpaper-pre-rotation
   nil
@@ -287,6 +288,7 @@ Either choose one of the pre-defined options (see
 ‘scanner--unpaper-sizes’), or enter width and height values as a
 string; e.g. ‘\"21cm,29.7cm\"’."
   :type `(choice (string)
+				 (const :tag "none" nil)
 				 ,@(mapcar (lambda (x) (list 'const x))
 						   scanner--unpaper-sizes)))
 
@@ -297,11 +299,12 @@ Either choose one of the pre-defined options (see
 ‘scanner--unpaper-sizes’), or enter width and height values as a
 string; e.g. ‘\"21cm,29.7cm\"’."
   :type `(choice (string)
+				 (const :tag "none" nil)
 				 ,@(mapcar (lambda (x) (list 'const x))
 						   scanner--unpaper-sizes)))
 
 (defcustom scanner-unpaper-border
-  '(0 0 0 0)
+  '(10 10 10 10)
   "Define a border at the sheet edges to be set to white.
 The border is specified as a list of four integers (widths in
 pixels) for left, top, right, and bottom edge, respectively.
