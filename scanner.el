@@ -419,10 +419,9 @@ configured, return nil."
 (defvar scanner--scanimage-argspec
   (list "-d" 'scanner-device-name
 		"--format=" (lambda (args)
-					  (if (eq :doc (plist-get args :scan-type))
-						  (plist-get scanner-image-format :doc)
-						(or (plist-get args :img-fmt)
-							(plist-get scanner-image-format :image))))
+					  (or (plist-get args :img-fmt)
+						  (plist-get scanner-image-format
+									 (plist-get args :scan-type))))
 		"--mode=" (lambda (args)
 					(scanner--when-switch "--mode" args
 					  (plist-get scanner-scan-mode
@@ -477,20 +476,6 @@ translated into the arguments list:
 										(process-argspec (cddr spec))))))
 	(-flatten (process-argspec argspec))))
 
-(defun scanner--scanimage-args (scan-type switches img-fmt)
-  "Construct the argument list for scanimage(1).
-SCAN-TYPE is either ‘:image’ or ‘:doc’, SWITCHES is a list of
-available device-dependent options and IMG-FMT is the output
-image format.
-
-When scanning documents (scan-type :doc), scanner uses the IMG-FMT
-argument for the intermediate representation before conversion to
-the document format.  If any of the required options from
-‘scanner--device-specific-switches’ are unavailable, they are
-simply dropped."
-  (scanner--program-args scanner--scanimage-argspec :img-fmt img-fmt
-						 :scan-type scan-type :device-dependent switches))
-
 (defun scanner--program-version (program version-switch)
   "Determine the version of PROGRAM using VERSION-SWITCH."
   (condition-case err
@@ -510,11 +495,12 @@ simply dropped."
 ;; once everyone has caught up.
 (defun scanner--make-scanimage-command (args outfile)
   "Make the scanimage command using ARGS and OUTFILE.
-The arguments list ARGS should be supplied by ‘scanner--scanimage-args’ and
-the output file name is given by OUTFILE.
-This function checks the installed version of scanimage(1) and
-returns a command directly callable by ‘make-process’.  For old versions of
-scanimage this will construct a shell command."
+The arguments list ARGS should be supplied by
+‘scanner--program-args’ and the output file name is given by
+OUTFILE.  This function checks the installed version of
+scanimage(1) and returns a command directly callable by
+‘make-process’.  For old versions of scanimage this will
+construct a shell command."
   (if (version< (scanner--program-version scanner-scanimage-program "-V")
 				scanner--scanimage-version-o-switch)
 	  (list shell-file-name
@@ -545,14 +531,6 @@ scanimage this will construct a shell command."
 		'outputs 'scanner-tesseract-outputs)
   "The arguments list specification for tesseract.")
 
-(defun scanner--tesseract-args (input output-base)
-  "Construct the argument list for ‘tesseract(1)’.
-INPUT is the input file name, OUTPUT-BASE is the basename for the
-output files.  Note that tesseract automatically adds file name
-extensions depending on the selected output options, see
-‘scanner-tesseract-outputs’."
-  (scanner--program-args scanner--tesseract-argspec :input input
-						 :output output-base))
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
@@ -744,9 +722,11 @@ performing OCR."
 										  (number-to-string (cl-incf page-num))
 										  "."
 										  fmt))
-						(scanimage-args (scanner--scanimage-args :doc
-																 switches
-																 fmt))
+						(scanimage-args (scanner--program-args
+										 scanner--scanimage-argspec
+										 :scan-type :doc
+										 :img-type fmt
+										 :device-dependent switches))
 						(scanimage-command (scanner--make-scanimage-command
 											scanimage-args img-file)))
 				   (push img-file file-list)
@@ -794,8 +774,9 @@ performing OCR."
 											   (mapconcat #'identity
 														  file-list
 														  "\n")))
-				 (let ((tesseract-args (scanner--tesseract-args fl-file
-																doc-file)))
+				 (let ((tesseract-args (scanner--program-args
+										scanner--tesseract-argspec
+										:input fl-file :output doc-file)))
 				   (scanner--log (format "tesseract arguments: %s"
 										 tesseract-args))
 				   (make-process :name "Scanner (tesseract)"
@@ -852,9 +833,7 @@ available, ask for a selection interactively."
 		(page-count 1))
     (cl-labels ((scanimage
 				 (multi-scan)
-				 (let* ((img-fmt (or derived-fmt
-									 (plist-get scanner-image-format :image)))
-						(img-ext (if derived-fmt
+				 (let* ((img-ext (if derived-fmt
 									 (file-name-extension filename t)
 								   (concat "."
 										   (plist-get scanner-image-format
@@ -869,9 +848,11 @@ available, ask for a selection interactively."
 												  img-ext)
 										(cl-incf page-count))
 									(concat img-base img-ext)))
-						(scanimage-args (scanner--scanimage-args :image
-																 switches
-																 img-fmt))
+						(scanimage-args (scanner--program-args
+										 scanner--scanimage-argspec
+										 :img-fmt derived-fmt
+										 :scan-type :image
+										 :device-dependent switches))
 						(scanimage-command (scanner--make-scanimage-command
 											scanimage-args img-file)))
 				   (when (scanner--confirm-filenames img-file)
