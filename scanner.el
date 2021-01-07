@@ -284,9 +284,9 @@ plugged in.  For these, auto-detection will always be done."
   "a4"
   "Change sheet size before post-processing.
 Either choose one of the pre-defined options (see
-‘scanner--unpaper-sizes’), or enter a list of width and height
-values as strings; e.g. ‘(\"21cm\" \"29.7cm\")’."
-  :type `(choice (list string string)
+‘scanner--unpaper-sizes’), or enter width and height values as a
+string; e.g. ‘\"21cm,29.7cm\"’."
+  :type `(choice (string)
 				 ,@(mapcar (lambda (x) (list 'const x))
 						   scanner--unpaper-sizes)))
 
@@ -294,9 +294,9 @@ values as strings; e.g. ‘(\"21cm\" \"29.7cm\")’."
   "a4"
   "Change sheet size after post-processing.
 Either choose one of the pre-defined options (see
-‘scanner--unpaper-sizes’), or enter a list of width and height
-values as strings; e.g. ‘(\"21cm\" \"29.7cm\")’."
-  :type `(choice (list string string)
+‘scanner--unpaper-sizes’), or enter width and height values as a
+string; e.g. ‘\"21cm,29.7cm\"’."
+  :type `(choice (string)
 				 ,@(mapcar (lambda (x) (list 'const x))
 						   scanner--unpaper-sizes)))
 
@@ -406,15 +406,17 @@ name, the device type, and the vendor and model names."
   `(when (member ,switch (plist-get ,args :device-dependent))
 	 ,form))
 
-(defun scanner--size (scan-type)
-  "Return the size information appropriate for SCAN-TYPE.
-SCAN-TYPE may be either ‘:doc’ or ‘:image’.  If no size is
-configured, return nil."
-  (cl-case scan-type
-	(:doc (plist-get scanner-paper-sizes
-					 scanner-doc-papersize))
-	(:image scanner-image-size)
-	(t nil)))
+(defun scanner--size (scan-type selector)
+  "Return the size for SCAN-TYPE as given by SELECTOR.
+SCAN-TYPE may be either ‘:doc’ or ‘:image’.  Use ‘car’ as
+selector for the x-dimension and ‘cadr’ as selector for the
+y-dimension.  If no size is configured, return nil."
+  (-when-let (size (cl-case scan-type
+					 (:doc (plist-get scanner-paper-sizes
+									  scanner-doc-papersize))
+					 (:image scanner-image-size)
+					 (t nil)))
+	(funcall selector size)))
 
 (defvar scanner--scanimage-argspec
   (list "-d" 'scanner-device-name
@@ -428,17 +430,14 @@ configured, return nil."
 								 (plist-get args :scan-type))))
 		"--resolution=" (lambda (args)
 						  (scanner--when-switch "--resolution" args
-							(number-to-string
 							 (plist-get scanner-resolution
-										(plist-get args :scan-type)))))
+										(plist-get args :scan-type))))
 		"-x" (lambda (args)
 			   (scanner--when-switch "-x" args
-				 (-when-let (size (scanner--size (plist-get args :scan-type)))
-				   (number-to-string (car size)))))
+				 (scanner--size (plist-get args :scan-type) #'car)))
 		"-y" (lambda (args)
 			   (scanner--when-switch "-y" args
-				 (-when-let (size (scanner--size (plist-get args :scan-type)))
-				   (number-to-string (cadr size)))))
+				 (scanner--size (plist-get args :scan-type) #'cadr)))
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list specification for scanimage.")
 
@@ -458,11 +457,14 @@ translated into the arguments list:
    \"quux\")"
   (cl-labels ((make-option (sw val)
 						   (when val
-							 (if (stringp sw)
-								 (if (string-match ".=\\'" sw)
-									 (list (concat sw val))
-								   (list sw val))
-							   (list val))))
+							 (let ((sval (if (numberp val)
+											 (number-to-string val)
+										   val)))
+							   (if (stringp sw)
+								   (if (string-match ".=\\'" sw)
+									   (list (concat sw sval))
+									 (list sw sval))
+								 (list sval)))))
 			  (process-option (switch value)
 							  (cond ((functionp value)
 									 (make-option switch (funcall value args)))
@@ -525,12 +527,26 @@ construct a shell command."
 									 scanner-tesseract-program
 									 "--version")
 									scanner--tesseract-version-dpi-switch)
-					(number-to-string (plist-get scanner-resolution :doc))))
+					(plist-get scanner-resolution :doc)))
 		"--tessdata-dir" 'scanner-tessdata-dir
 		'user-switches 'scanner-tesseract-switches
 		'outputs 'scanner-tesseract-outputs)
   "The arguments list specification for tesseract.")
 
+(defvar scanner--unpaper-argspec
+  (list "--layout" 'scanner-unpaper-page-layout
+		"--dpi" (lambda (_) (plist-get scanner-resolution :doc))
+		"--input-pages" 'scanner-unpaper-input-pages
+		"--output-pages" 'scanner-unpaper-output-pages
+		"--pre-rotate" 'scanner-unpaper-pre-rotation
+		"--post-rotate" 'scanner-unpaper-post-rotation
+		"--size" 'scanner-unpaper-pre-size
+		"--post-size" 'scanner-unpaper-post-size
+		"--border" (lambda (_) (mapconcat #'number-to-string
+									 scanner-unpaper-border
+									 ","))
+		'user-switches 'scanner-unpaper-switches)
+  "The arguments list specification for unpaper.")
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
