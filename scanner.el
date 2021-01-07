@@ -606,8 +606,6 @@ MSG is a format string, with ARGS passed to ‘format’."
   "Return scanner log buffer or create it."
   (get-buffer-create "*Scanner*"))
 
-
-
 (defun scanner--confirm-filenames (file &optional formats)
   "Confirm that FILE using the provided list of FORMATS may be overwritten.
 If no formats are provided, FILE is used as-is.  Return t either
@@ -623,6 +621,8 @@ them.  Otherwise, return nil."
 				 (scanner--confirm-filenames file (cdr formats))
 			   t))
 	  (confirm file))))
+
+
 
 ;;;; commands
 ;;;###autoload
@@ -708,6 +708,76 @@ selection is made."
 				  (completing-read "Select scanning device: " choices nil t)
 				  "(" t ")")))))
   (setq scanner-device-name device))
+
+;;;###autoload
+(defun scanner-toggle-use-unpaper ()
+  "Toggle use of unpaper."
+  (interactive)
+  (setq scanner-use-unpaper (not scanner-use-unpaper)))
+
+;;;###autoload
+(defun scanner-select-page-layout (layout)
+  "Select the page layout."
+  (interactive (list (completing-read "Select page layout: "
+									  '("single" "double" "none")
+									  nil t)))
+  (setq scanner-unpaper-page-layout layout))
+
+;;;###autoload
+(defun scanner-select-input-pages (pages)
+  "Select the number of input PAGES."
+  (interactive "NSelect the number of input pages: ")
+  (setq scanner-unpaper-input-pages (min (max pages 1) 2)))
+
+;;;###autoload
+(defun scanner-select-output-pages (pages)
+  "Select the number of output PAGES."
+  (interactive "NSelect the number of output pages: ")
+  (setq scanner-unpaper-output-pages (min (max pages 1) 2)))
+
+(defun scanner--select-rotation (prompt)
+  "Select rotation displaying PROMPT."
+  (let ((choice (completing-read prompt
+								 '("clockwise" "counter-clockwise"
+								   "none")
+								 nil t)))
+	(list (cond ((string= choice "clockwise") 90)
+				((string= choice "counter-clockwise") -90)
+				(t nil)))))
+
+;;;###autoload
+(defun scanner-select-pre-rotation (rotation)
+  "Select the pre-rotation ROTATION (cw, ccw, none)."
+  (interactive (scanner--select-rotation "Select pre-rotation: "))
+  (setq scanner-unpaper-pre-rotation rotation))
+
+;;;###autoload
+(defun scanner-select-post-rotation (rotation)
+  "Select the post-rotation ROTATION (cw, ccw, none)."
+  (interactive (scanner--select-rotation "Select post-rotation: "))
+  (setq scanner-unpaper-post-rotation rotation))
+
+;;;###autoload
+(defun scanner-select-pre-size (size)
+  "Select the page SIZE before processing."
+  (interactive (list (completing-read "Select a pre-processing page size: "
+									  (cons "none"
+											scanner--unpaper-sizes)
+									  nil 'confirm)))
+  (setq scanner-unpaper-pre-size (if (string= "none" size)
+									 nil
+								   size)))
+
+;;;###autoload
+(defun scanner-select-post-size (size)
+  "Select the page SIZE after processing."
+  (interactive (list (completing-read "Select a post-processing page size: "
+									  (cons "none"
+											scanner--unpaper-sizes)
+									  nil 'confirm)))
+  (setq scanner-unpaper-post-size (if (string= "none" size)
+									 nil
+								   size)))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
