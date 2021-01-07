@@ -545,7 +545,13 @@ construct a shell command."
 		"--border" (lambda (_) (mapconcat #'number-to-string
 									 scanner-unpaper-border
 									 ","))
-		'user-switches 'scanner-unpaper-switches)
+		'user-switches 'scanner-unpaper-switches
+		'input (lambda (args) (concat (file-name-as-directory
+								  (plist-get args :tmp-dir))
+								 "input%04d.pnm"))
+		'output (lambda (args) (concat (file-name-as-directory
+								  (plist-get args :tmp-dir))
+								 "output%04d.pnm")))
   "The arguments list specification for unpaper.")
 
 (defun scanner--ensure-init ()
@@ -733,21 +739,19 @@ performing OCR."
 		(page-num 0))
     (cl-labels ((scanimage
 				 ()
-				 (let* ((img-file (concat (file-name-as-directory tmp-dir)
-										  "input"
-										  (number-to-string (cl-incf page-num))
-										  "."
+				 (let* ((img-file (format "%sinput%04d.%s"
+										  (file-name-as-directory tmp-dir)
+										  (cl-incf page-num)
 										  fmt))
 						(scanimage-args (scanner--program-args
 										 scanner--scanimage-argspec
 										 :scan-type :doc
-										 :img-type fmt
+										 :img-fmt fmt
 										 :device-dependent switches))
 						(scanimage-command (scanner--make-scanimage-command
 											scanimage-args img-file)))
 				   (push img-file file-list)
-				   (scanner--log (format "scanimage command: %s"
-										 scanimage-command))
+				   (scanner--log "scanimage command: %s" scanimage-command)
 				   (make-process :name "Scanner (scanimage)"
 								 :command scanimage-command
 								 :sentinel #'scan-or-process
@@ -767,15 +771,36 @@ performing OCR."
 							 ((> num-pages 1)
 							  (cl-decf num-pages)
 							  (run-at-time scanner-scan-delay nil #'scanimage))
-							 (t (tesseract))))
+							 (t (if scanner-use-unpaper
+									(unpaper)
+								  (tesseract)))))
 				   (error
 					(cleanup)
 					(signal (car err) (cdr err)))))
 				(unpaper
 				 ()
 				 (cl-assert scanner-unpaper-program)
+				 (let ((unpaper-args (scanner--program-args
+									  scanner--unpaper-argspec
+									  :tmp-dir tmp-dir)))
+				   (scanner--log "unpaper arguments: %s" unpaper-args)
+				   (make-process :name "Scanner (unpaper)"
+								 :command `(,scanner-unpaper-program
+											,@unpaper-args)
+								 :sentinel #'unpaper-sentinel
+								 :std-err (scanner--log-buffer))))
+				(unpaper-sentinel
+				 (process event)
 				 (condition-case err
-					 ()
+					 (let ((ev (string-trim event)))
+					   (unless (string= "finished" ev)
+						 (error "%s: %s" process ev))
+					   (setq file-list
+							 (nreverse
+							  (directory-files tmp-dir
+											   t
+											   "output[[:digit:]]+\\.pnm")))
+					   (tesseract))
 				   (error
 					(cleanup)
 					(signal (car err) (cdr err)))))
@@ -793,8 +818,7 @@ performing OCR."
 				 (let ((tesseract-args (scanner--program-args
 										scanner--tesseract-argspec
 										:input fl-file :output doc-file)))
-				   (scanner--log (format "tesseract arguments: %s"
-										 tesseract-args))
+				   (scanner--log "tesseract arguments: %s" tesseract-args)
 				   (make-process :name "Scanner (tesseract)"
 								 :command `(,scanner-tesseract-program
 											,@tesseract-args)
