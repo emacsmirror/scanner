@@ -62,6 +62,7 @@ The document was typeset with
 * Overview::
 * User Options::
 * Improving Scan Quality::
+* News::
 * Reporting Bugs::
 * GNU Free Documentation License::
 * Index::
@@ -858,8 +859,38 @@ for detailed information on how to use unpaper
 @end itemize
 
 
+@node News
+@chapter News
+@cindex news
+
+This chapter lists the changes made in new releases of Scanner.
+
+@menu
+* Changes in Version 0.3::
+@end menu
+
+@node Changes in Version 0.3
+@section Changes in Version 0.3
+@cindex changes in version 0.3
+
+@itemize
+@item
+@command{unpaper} has been added as a new backend; it allows scan
+enhancement in document scans; see @ref{Configuring unpaper} for options.
+@item
+older @command{scanimage} versions (before 1.0.28) are now supported as well.
+@item
+a new page size @code{:whatever} allows @command{scanimage} to select
+the page size based on the available scan area.
+@item
+Scanner now comes with a manual.
+@end itemize
+
+
+
 @node Reporting Bugs
 @chapter Reporting Bugs
+@cindex reporting bugs
 
 Refer to @uref{https://www.gitlab.com/rstocker/scanner/}
 mention *Scanner* log buffer
