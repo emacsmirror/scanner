@@ -320,50 +320,96 @@ border-scan."
 
 ;;;; menu
 ;;;###autoload
+(defvar scanner-enhancement-menu
+  (let ((map (make-sparse-keymap "Scan Enhancement")))
+	(define-key map [post-size]
+	  '(menu-item "Select page size after processing"
+				  scanner-select-post-size
+				  :help "Stretch to a page size after processing is done."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [pre-size]
+	  '(menu-item "Select page size before processing"
+				  scanner-select-pre-size
+				  :help "Stretch to a page size before all other processing."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [post-rotation]
+	  '(menu-item "Select page rotation after processing"
+				  scanner-select-post-rotation
+				  :help "Rotate the page after processing is done."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [pre-rotation]
+	  '(menu-item "Select page rotation before processing"
+				  scanner-select-pre-rotation
+				  :help "Rotate the page before all other processing."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [output-pages]
+	  '(menu-item "Select number of output pages"
+				  scanner-select-output-pages
+				  :help "Select the number of output pages (to split pages)."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [input-pages]
+	  '(menu-item "Select number of input pages"
+				  scanner-select-input-pages
+				  :help "Select the number of input pages (to combine pages)."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [page-layout]
+	  '(menu-item "Select page layout"
+				  scanner-select-page-layout
+				  :help "Select the page layout (pages per scanned sheet)."
+				  :enable (and (boundp 'scanner-use-unpaper)
+							   scanner-use-unpaper)))
+	(define-key map [use-unpaper]
+	  '(menu-item "Use unpaper for scan enhancement"
+				  scanner-toggle-use-unpaper
+				  :help "Enable scan post-processing using unpaper."
+				  :button (:toggle . (and (boundp 'scanner-use-unpaper)
+										  scanner-use-unpaper))))
+	map))
+
+;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
     (define-key map [image-size]
       '(menu-item "Select image size" scanner-select-image-size
-				  :key-sequence nil
 				  :help "Select a size for image scanning."))
     (define-key map [img-res]
       '(menu-item "Set image resolution" scanner-set-image-resolution
-				  :key-sequence nil
 				  :help "Set the resolution for image scanning."))
     (define-key map [languages]
       '(menu-item "Select OCR languages" scanner-select-languages
-				  :key-sequence nil
 				  :help "Select languages for OCR."))
     (define-key map [outputs]
       '(menu-item "Select document outputs" scanner-select-outputs
-				  :key-sequence nil
 				  :help "Select document output formats."))
     (define-key map [papersize]
       '(menu-item "Select paper size" scanner-select-papersize
-				  :key-sequence nil
 				  :help "Select a paper size for document scanning."))
     (define-key map [doc-res]
       '(menu-item "Set document resolution" scanner-set-document-resolution
-				  :key-sequence nil
 				  :help "Set the resolution for document scanning."))
     (define-key map [select-dev]
       '(menu-item "Select scanning device" scanner-select-device
-				  :key-sequence nil
 				  :help "Select a scanning device."))
-    (define-key map [seperator]
+    (define-key map [seperator2]
+      '(menu-item "--"))
+	(define-key map [scan-enhancement]
+	  (list 'menu-item "Scan enhancement" scanner-enhancement-menu))
+	(define-key map [seperator1]
       '(menu-item "--"))
     (define-key map [image-multi]
-      '(menu-item "Scan multiple images" scanner-scan-multi-images
-				  :key-sequence nil))
+      '(menu-item "Scan multiple images" scanner-scan-multi-images))
     (define-key map [image]
-      '(menu-item "Scan an image" scanner-scan-image
-				  :key-sequence nil))
+      '(menu-item "Scan an image" scanner-scan-image))
     (define-key map [document-multi]
-      '(menu-item "Scan a multi-page document" scanner-scan-multi-doc
-				  :key-sequence nil))
+      '(menu-item "Scan a multi-page document" scanner-scan-multi-doc))
     (define-key map [document]
-      '(menu-item "Scan a document" scanner-scan-document
-				  :key-sequence nil))
+      '(menu-item "Scan a document" scanner-scan-document))
     map)
   "The scanner menu map.")
 
