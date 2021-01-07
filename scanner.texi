@@ -71,7 +71,10 @@ The document was typeset with
 @c Insert new nodes with `C-c C-c n'.
 @node Overview
 @chapter Overview
-@cindex Overview
+@cindex overview
+
+This chapter gives provides you with the most important information to
+get started using Scanner.
 
 @menu
 * Introduction::
@@ -81,7 +84,7 @@ The document was typeset with
 
 @node Introduction
 @section Introduction
-@cindex Introduction
+@cindex introduction
 
 If you want to scan a document at high quality with @acronym{OCR,
 optical character recognition} and not use one of the available free
@@ -191,6 +194,7 @@ images.  These are described below.
 @item M-x scanner-scan-document
 @itemx C-u M-x scanner-scan-document
 @itemx C-u N M-x scanner-scan-document
+@findex scanner-scan-document
 Scan a document.  When called without a prefix argument, this command
 will scan only one page.  When called with the default prefix argument
 (as @kbd{C-u M-x scanner-scan-document}), it will ask after each scanned
@@ -233,6 +237,7 @@ for a multi-page scan.
 @item M-x scanner-scan-image
 @itemx C-u M-x scanner-scan-image
 @itemx C-u n M-x scanner-scan-image
+@findex scanner-scan-image
 Scan an image.  When called without a prefix argument, this command
 will scan only one image.  When called with the default prefix argument
 (as @kbd{C-u M-x scanner-scan-image}), it will ask after each scanned
@@ -287,7 +292,7 @@ Scanner menu (@clicksequence{Tools @click{} Scanner}).
 
 @node Configuration Commands
 @section Configuration Commands
-@cindex Configuration Commands
+@cindex configuration commands
 
 The following commands help you configure some of the more-often used
 options.  They only change the options for the running session; if you
@@ -297,6 +302,7 @@ Emacs sessions, use the customization interface.
 @table @kbd
 @item M-x scanner-set-image-resolution
 @item M-x scanner-set-document-resolution
+@findex scanner-set-document-resolution
 These commands interactively asks for a resolution (in @acronym{DPI,
 dots per inch}) to be used in subsequent image and document scans,
 respectively.  The corresponding user options is
@@ -310,6 +316,7 @@ and@*
 document resolution}.
 
 @item M-x scanner-select-papersize
+@findex scanner-select-papersize
 Select a paper size from @code{scanner-paper-sizes} or
 @code{:whatever}.  See also @code{scanner-doc-papersize}.
 
@@ -317,6 +324,7 @@ This command is available in the Scanner menu as@*
 @clicksequence{Tools @click{} Scanner @click{} Select paper size}.
 
 @item M-x scanner-select-image-size
+@findex scanner-select-image-size
 Select an image size.  This command interactively reads x and y
 dimensions in millimeter from the minibuffer and sets
 @code{scanner-image-size} accordingly.
@@ -325,6 +333,7 @@ This command is also available in the Scanner menu as@*
 @clicksequence{Tools @click{} Scanner @click{} Select image size}.
 
 @item M-x scanner-select-outputs
+@findex scanner-select-outputs
 Select the document outputs.  This command reads a list of document
 output formats.  See also @code{scanner-tesseract-outputs}.
 
@@ -332,6 +341,7 @@ This command is also available in the Scanner menu as@*
 @clicksequence{Tools @click{} Scanner @click{} Select document outputs}.
 
 @item M-x scanner-select-languages
+@findex scanner-select-languages
 Select the languages assumed for OCR.  This command reads a list of
 languages used for OCR.  The necessary @command{tesseract} data files
 must be available.  See @code{scanner-tesseract-languages}.
@@ -341,6 +351,7 @@ This command is also available in the Scanner menu as@*
 
 @item M-x scanner-select-device
 @itemx C-u M-x scanner-select-device
+@findex scanner-select-device
 Select a device, possibly triggering auto-detection.  Normally, manual
 device selection is not necessary as @command{scanimage} will
 auto-detect.  However, if you have multiple devices and want to change
@@ -351,6 +362,133 @@ devices have already been detected before.
 
 This command is also available in the Scanner menu as@*
 @clicksequence{Tools @click{} Scanner @click{} Select scanning device}
+@end table
+
+The following commands can be found in the ``Scan Enhancement'' submenu
+of the Scanner menu (@clicksequence{Tools @click{} Scanner @click{} Scan
+Enhancement}).  They require @command{unpaper} to be installed.  Scan
+enhancement allows such post-processing operations as rotation,
+de-noising, and deskewing, among others.  It is highly recommended as a
+preparatory step before OCR.  The descriptions of the commands below
+give a few hints on the usage of @command{unpaper}.  For more details,
+see its man-page or web-site.
+
+@table @kbd
+@item M-x scanner-toggle-use-unpaper
+@findex scanner-toggle-use-unpaper
+Toggle the use of @command{unpaper} for scan enhancement.  This command
+changes the option @code{scanner-use-unpaper} during the session.  Only
+when this option is non-@code{nil} will @command{unpaper} be used and
+the other items in the ``Scan Enhancement'' menu be available.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Use unpaper for scan enhancement}
+
+The following commands configure some important processing steps; see
+@ref{Configuring unpaper} for all the options.
+
+@item M-x scanner-select-page-layout
+@findex scanner-select-page-layout
+This command interactively asks for the page layout of the pages to be
+scanned.  Available options are ``single'', ``double'', and ``none''
+(the default).  If you scan a sheet with two pages, for example as with
+a book, you can choose ``double'' here so @command{unpaper} will divide
+the sheet into two output pages.  If you use ``single'', it will try to
+identify the actual (single-)page contents on the sheet and stretch
+these to fit the output page size.  If you don't want any rearrangement,
+choose ``none''.  Note that ``double'' page layout implies a landscape
+orientation.  This command sets the option
+@code{scanner-unpaper-page-layout} accordingly.  If you want to split up
+an input page into two output pages, you must also use the
+@command{scanner-select-output-pages} command.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select page layout}
+
+@item M-x scanner-select-input-pages
+@findex scanner-select-input-pages
+This command allows you to select the number of input pages.  Available
+options are @code{1} and @code{2}.  It sets the option
+@code{scanner-unpaper-input-pages}.  If you wanted to combine two
+scanned input pages into one page, for example, to have left and right
+sides on one sheet, you would select two input pages and one output
+page, together with a ``single'' (or ``none'') page layout.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select number of input pages}
+
+@item M-x scanner-select-output-pages
+@findex scanner-select-output-pages
+This command allows you to select the number of output pages.  Available
+options are @code{1} and @code{2}.  It sets the option
+@code{scanner-unpaper-output-pages}.  If you wanted to split one scanned
+input page into two output pages, for example, to have left and right
+sides from a book on separate pages, you would select one input page and
+two output pages, together with a ``double'' page layout.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select number of output pages}
+
+@item M-x scanner-select-pre-rotation
+@findex scanner-select-pre-rotation
+This command asks for the rotation to be applied before any further
+processing.  Available values are ``clockwise'', ``counter-clockwise'',
+and ``none''.  It sets the @code{scanner-unpaper-pre-rotation} option.
+You should use this option if you have a landscape-oriented document
+scanned as portrait.  Rotating before further processing is especially
+relevant for scanning double-page documents, as it ensures that the
+document is in the correct orientation before @command{unpaper} tries to
+split pages.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select page rotation before processing}
+
+@item M-x scanner-select-post-rotation
+@findex scanner-select-post-rotation
+This command asks for the rotation to be applied after all the 
+processing.  Available values are ``clockwise'', ``counter-clockwise'',
+and ``none''.  It sets the @code{scanner-unpaper-post-rotation} option.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select page rotation after processing}
+
+@item M-x scanner-select-pre-size
+@findex scanner-select-pre-size
+This command interactively asks for the page size to set before further
+processing.  The scanned sheets will be scaled to this size.  Available
+options are ``a5'', ``a4'', ``a3'', ``a5-landscape'', ``a4-landscape'',
+``a3-landscape'', ``letter'', ``legal'', ``letter-landscape'',
+``legal-landscape'', ``none'', and direct width and height
+specifications as in ``21cm,29.7cm''.  See the documentation for
+@command{unpaper} for the understood units.  If you choose ``none'', no
+size will be specified in the invocation of @command{unpaper} and it
+will select the size based on the input data.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select page size before processing}
+
+@item M-x scanner-select-post-size
+@findex scanner-select-post-size
+This command interactively asks for the page size to set after all the
+processing.  The processed sheets will be scaled to this size.  Available
+options are ``a5'', ``a4'', ``a3'', ``a5-landscape'', ``a4-landscape'',
+``a3-landscape'', ``letter'', ``legal'', ``letter-landscape'',
+``legal-landscape'', ``none'', and direct width and height
+specifications as in ``21cm,29.7cm''.  See the documentation for
+@command{unpaper} for the understood units.  If you choose ``none'', no
+size will be specified in the invocation of @command{unpaper} and it
+will select the size based on the processed data.
+
+This command is also available in the Scanner menu as@*
+@clicksequence{Tools @click{} Scanner @click{} Scan Enhancement @click{}
+Select page size after processing}
 @end table
 
 
@@ -531,41 +669,104 @@ are device-dependent.
 @cindex configuring unpaper
 
 @defopt scanner-unpaper-program
+This variable contains the path of the @command{unpaper} program.
 @end defopt
 
 @defopt scanner-use-unpaper
+If this option is non-@code{nil}, scan enhancement using
+@command{unpaper} is activated.  Although using @command{unpaper} is
+highly recommended, its configuration is a bit elaborate and might be
+confusing at first.  The default is therefore @code{nil}.
 @end defopt
 
 @defopt scanner-unpaper-page-layout
+This option specifies the page layout of the scanned sheets.  Allowed
+values are ``single'', ``double'', and ``none'', setting
+@command{unpaper} up for detection of the page extent.  Note that
+``double'' implies a landscape orientation.  This option corresponds to
+the @option{--layout} option of @command{unpaper}.  See its
+documentation for details on the implications of the values.  The
+default is ``none''.
 @end defopt
 
 @defopt scanner-unpaper-input-pages
+This option selects the number of pages per scanned sheet of input.
+Allowed values are @code{1} and @code{2}.  This variable corresponds to
+the @option{--input-pages} option of @command{unpaper}.  If set to two
+input pages, @command{unpaper} will pairwise combine input sheets.  The
+default is @code{1}.
 @end defopt
 
 @defopt scanner-unpaper-output-pages
+This option selects the number of pages per sheet of processed output.
+Allowed values are @code{1} and @code{2}.  This variable corresponds to
+the @option{--output-pages} option of @command{unpaper}.  If set to two
+output pages, @command{unpaper} will split up every page of processed
+output into two pages.  The default is @code{1}.
 @end defopt
 
 @defopt scanner-unpaper-pre-rotation
+This option specifies the rotation to be applied before further
+processing.  Allowed values are ``clockwise'', ``counter-clockwise'',
+and ``none''.  This variable corresponds to the @option{--pre-rotation}
+option of @command{unpaper}.  If you choose ``none'', no rotation is
+specified in the invocation of @command{unpaper}.  The default is
+``none.
 @end defopt
 
 @defopt scanner-unpaper-post-rotation
+This option specifies the rotation to be applied after all the
+processing.  Allowed values are ``clockwise'', ``counter-clockwise'',
+and ``none''.  This variable corresponds to the @option{--post-rotation}
+option of @command{unpaper}.  If you choose ``none'', no rotation is
+specified in the invocation of @command{unpaper}.  The default is
+``none.
 @end defopt
 
 @defopt scanner-unpaper-pre-size
+This option specifies the page size to assume before further processing.
+The scanned input will be scaled to this size.  Allowed values are
+``a5'', ``a4'', ``a3'', ``a5-landscape'', ``a4-landscape'',
+``a3-landscape'', ``letter'', ``legal'', ``letter-landscape'',
+``legal-landscape'', ``none'', and direct width and height
+specifications as in ``21cm,29.7cm''.  This variable corresponds to the
+@option{--size} option of @command{unpaper}.  The default is ``a4''.
 @end defopt
 
 @defopt scanner-unpaper-post-size
+This option specifies the page size to assume after all the processing.
+The processed output will be scaled to this size.  Allowed values are
+``a5'', ``a4'', ``a3'', ``a5-landscape'', ``a4-landscape'',
+``a3-landscape'', ``letter'', ``legal'', ``letter-landscape'',
+``legal-landscape'', ``none'', and direct width and height
+specifications as in ``21cm,29.7cm''.  This variable corresponds to the
+@option{--post-size} option of @command{unpaper}.  The default is ``a4''.
 @end defopt
 
 @defopt scanner-unpaper-border
+This option allows you to force a border of white pixels at the four
+edges of a scanned sheet.  Allowed is any list of four integers, for
+example, @code{(10 10 10 10)} (the default).  This is very useful to
+remove black or gray scan artefacts at the edges of a sheet.  Even if
+this is not specified, @command{unpaper} will try to detect any such
+artefacts and remove them.  However, forcing a border usually leads to
+better results.  This variable corresponds to the @option{--border}
+option of @command{unpaper}.
 @end defopt
 
 @defopt scanner-unpaper-switches
+Any additional parameters to @command{unpaper} can be specified using
+this option.  Allowed is any list comprising valid @command{unpaper}
+options as strings.
 @end defopt
 
 @node Configuring tesseract
 @section Configuring tesseract
 @cindex configuring tesseract
+
+@defopt scanner-tesseract-program
+This option specifies the path of the @command{tesseract} program.
+@end defopt
 
 @defopt scanner-tessdata-dir
 This option specifies the @file{tessdata} directory.  This directory is
