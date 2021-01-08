@@ -828,35 +828,117 @@ format as for @code{scanner-scanimage-switches}.  The default is nil.
 @cindex scan quality, improving
 @cindex quality, improving
 
-include tips for improving quality, ask for contributions
+This chapter comprises recommendations for improving the scan or OCR
+quality.  If you know about any additional tips and tricks to improve
+quality, please let the author know about them.
 
-@itemize
-@item
-tesseract v4
-@item
-see @url{https://tesseract-ocr.github.io/tessdoc/} for tesseract documentation
-@item
-set left and top margin in scanimage
-@item
-use brightness and contrast for scanimage
-@item
-use at least 300 DPI for OCR, but more than 600 only increase document
-size without improving OCR
-@item
-use the right language, not multiple languages for a single-language document
-@item
-use unpaper to deskew the page
-@item
-use unpaper deskewing options
-@item
-use unpaper middle wipe etc.
-@item
-have a look at
+Besides checking the following sections, you might also want to consult
+the documentation for @command{tesseract},
+@url{https://tesseract-ocr.github.io/tessdoc/}, and @command{unpaper},
 @url{https://github.com/unpaper/unpaper/blob/main/doc/basic-concepts.md}
-and
+(basics) and
 @url{https://github.com/unpaper/unpaper/blob/main/doc/image-processing.md}
-for detailed information on how to use unpaper
-@end itemize
+(details).
+
+
+@menu
+* Improving General Scan Quality::
+* Improving OCR::
+@end menu
+
+@node Improving General Scan Quality
+@section Improving General Scan Quality
+@cindex improving general scan quality
+
+@table @asis
+@item Image format
+As a lossy format, JPEG is not a good basis for later OCR.  Therefore,
+use PNG, PNM, or TIFF for document scanning.  If you also use
+@command{unpaper}, the image format is forced to PNM, as required by
+this tool.
+
+@item Scan area
+Besides setting the size of the scan area, @command{scanimage} allows
+you to specify offsets to the top and left edges.  The device-specific
+switches @option{-l} and @option{-t}, if available, allow you to specify
+the top-left x and y positions, respectively.  This can be used to get
+rid of some blacked out parts in corners due to the mis-alignment of
+scan area and scanned sheet.
+
+@item Resolution
+For document scans, use at least 300 DPI to achieve acceptable OCR
+results.  A resolution above 600 DPI will not enhance OCR quality any
+further and only leads to larger files.  For most documents, 300 DPI
+should be ok.
+
+@item Brightness and contrast
+Good document quality (and especially good OCR results) require
+sufficient contrast and a good reproduction of the document's background
+color.  If the defaults of your device are inadequate, use the
+brightness and contrast settings of @command{scanimage} to provide
+sensible values.  See @ref{Configuring scanimage} and the options
+@code{scanner-brightness} and @code{scanner-contrast} there.  You may
+want to try a low brightness setting (for example, 20) and a medium
+contrast setting (for example, 50) as a start.
+
+Note that the underlying parameters to @command{scanimage} are
+device-specific.  If the two mentioned options are not supported by your
+device, you may be able to use @code{scanner-scanimage-switches} to
+supply the specific switches to @command{scanimage}.
+
+@item Dark areas and shadows
+If your scan shows dark (black/gray) areas or shadows, for example in
+the fold when scanning a book, use @command{unpaper} to remove them.  If
+it cannot remove these areas automatically, you can manually specify an
+area to be wiped out using the @option{--wipe} switch of
+@command{unpaper}.  If you scan a page with the ``double'' layout and
+want to remove the shadow of a book fold, use the @option{--middle-wipe}
+switch.  You can put these switches into the
+@code{scanner-unpaper-switches} option.  See also the @command{unpaper}
+documentation.
+
+@item Page borders
+If you use @command{unpaper}, it will try to remove dark areas around
+the edges of the page.  If this does not work automatically, use the
+@code{scanner-unpaper-border} option to specify a border (in pixels)
+around the edges of the page that is to be wiped, see @ref{Configuring
+unpaper}.
+
+@end table
+
+@node Improving OCR
+@section Improving OCR
+@cindex improving ocr
+
+@table @asis
+@item Tesseract version
+Use version 4 or higher of @command{tesseract}.  This version includes a
+new OCR engine that delivers better results than the previous one.
+Also, @command{tesseract} is multithreaded starting from version 4 and
+is therefore faster on multi-core machines.
+
+@item Language setting
+Tesseract allows you to use multiple languages.  For single-language
+documents, however, this doesn't seem to be optimal.  It's best to
+choose a single language when possible.
+
+@item Page deskewing
+OCR is quite sensitive to any skew of a page.  Use @command{unpaper} to
+deskew the pages.  See @ref{Configuring unpaper}.
+
+In some cases, @command{unpaper} may not be able to deskew a page
+automatically.  If so, have a look at the deskewing switches of
+@command{unpaper}.  Especially @option{--deskew-scan-step},
+@option{--deskew-scan-deviation}, and @option{--deskew-scan-range} can
+be helpful.  You can put those switches into
+@code{scanner-unpaper-switches}.  See the @command{unpaper}
+documentation for details.
+
+@end table
+
+
+
+
 
 
 @node News
