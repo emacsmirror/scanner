@@ -766,13 +766,13 @@ them.  Otherwise, return nil."
 (defun scanner-set-brightness (brightness)
   "Set the BRIGHTNESS."
   (interactive "NBrightness: ")
-  (setq scanner-brightness (min  (max brightness 0) 100)))
+  (setq scanner-brightness brightness))
 
 ;;;###autoload
 (defun scanner-set-contrast (contrast)
   "Set the CONTRAST."
   (interactive "NContrast: ")
-  (setq scanner-contrast (min (max contrast 0) 100)))
+  (setq scanner-contrast contrast))
 
 ;;;###autoload
 (defun scanner-set-scan-delay (delay)
