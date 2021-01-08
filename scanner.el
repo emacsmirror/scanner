@@ -86,7 +86,12 @@
 (defcustom scanner-resolution
   '(:image 600 :doc 300)
   "Resolutions for images and documents."
-  :type '(plist :value-type number))
+  :type '(plist :value-type integer))
+
+(defcustom scanner-preview-resolution
+  75
+  "Resolutions for preview scans"
+  :type '(const integer))
 
 (defcustom scanner-brightness
   20
@@ -421,7 +426,9 @@ border-scan."
 	  (list 'menu-item "Scan enhancement" scanner-enhancement-menu))
 	(define-key map [seperator1]
       '(menu-item "--"))
-    (define-key map [image-multi]
+	(define-key map [preview]
+      '(menu-item "Make a preview scan" scanner-scan-preview))
+	(define-key map [image-multi]
       '(menu-item "Scan multiple images" scanner-scan-multi-images))
     (define-key map [image]
       '(menu-item "Scan an image" scanner-scan-image))
@@ -514,6 +521,27 @@ y-dimension.  If no size is configured, return nil."
 						  scanner-contrast))
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list specification for scanimage.")
+
+(defvar scanner--scanimage-preview-argspec
+  (list "-d" 'scanner-device-name
+		"--format=" "pnm"
+		"--resolution=" (lambda (args)
+						  (scanner--when-switch "--resolution" args
+							scanner-preview-resolution))
+		"-x" (lambda (args)
+			   (scanner--when-switch "-x" args
+				 (scanner--size (plist-get args :scan-type) #'car)))
+		"-y" (lambda (args)
+			   (scanner--when-switch "-y" args
+				 (scanner--size (plist-get args :scan-type) #'cadr)))
+		"--brightness=" (lambda (args)
+						  (scanner--when-switch "--brightness" args
+							scanner-brightness))
+		"--contrast=" (lambda (args)
+						(scanner--when-switch "--contrast" args
+						  scanner-contrast))
+		'user-switches 'scanner-scanimage-switches)
+  "The arguments list used for preview scans.")
 
 (defun scanner--program-args (argspec &rest args)
   "Return an arguments list as specified in ARGSPEC, assuming ARGS.
@@ -610,6 +638,27 @@ construct a shell command."
 (defvar scanner--unpaper-argspec
   (list "--layout" 'scanner-unpaper-page-layout
 		"--dpi" (lambda (_) (plist-get scanner-resolution :doc))
+		"--input-pages" 'scanner-unpaper-input-pages
+		"--output-pages" 'scanner-unpaper-output-pages
+		"--pre-rotate" 'scanner-unpaper-pre-rotation
+		"--post-rotate" 'scanner-unpaper-post-rotation
+		"--size" 'scanner-unpaper-pre-size
+		"--post-size" 'scanner-unpaper-post-size
+		"--border" (lambda (_) (mapconcat #'number-to-string
+									 scanner-unpaper-border
+									 ","))
+		'user-switches 'scanner-unpaper-switches
+		'input (lambda (args) (concat (file-name-as-directory
+								  (plist-get args :tmp-dir))
+								 "input%04d.pnm"))
+		'output (lambda (args) (concat (file-name-as-directory
+								  (plist-get args :tmp-dir))
+								 "output%04d.pnm")))
+  "The arguments list specification for unpaper.")
+
+(defvar scanner--unpaper-preview-argspec
+  (list "--layout" 'scanner-unpaper-page-layout
+		"--dpi" 'scanner-preview-resolution
 		"--input-pages" 'scanner-unpaper-input-pages
 		"--output-pages" 'scanner-unpaper-output-pages
 		"--pre-rotate" 'scanner-unpaper-pre-rotation
@@ -1083,6 +1132,87 @@ available, ask for a selection interactively."
 A numerical suffix is added to FILENAME for each scanned image."
   (interactive "FImage file name: ")
   (scanner-scan-image (list 4) filename))
+
+
+;;;###autoload
+(defun scanner-scan-preview ()
+  "Make a preview scan.
+If ‘scanner-use-unpaper’ is non-nil, also post-process with
+unpaper.  On graphical displays, this command opens the preview
+scan in an image buffer.  Otherwise it opens a dired buffer of
+the directory containing the image files."
+  (interactive)
+  (cl-assert scanner-scanimage-program)
+  (let* ((switches (scanner--ensure-init))
+		 (tmp-dir (make-temp-file "scanner" t))
+		 (img-file (concat (file-name-as-directory tmp-dir)
+						   "input0001.pnm")))
+    (cl-labels ((scanimage
+				 ()
+				 (let* ((scanimage-args (scanner--program-args
+										 scanner--scanimage-preview-argspec
+										 :scan-type :doc
+										 :device-dependent switches))
+						(scanimage-command (scanner--make-scanimage-command
+											scanimage-args img-file)))
+				   (scanner--log "Scanning preview to file \"%s\"" img-file)
+				   (scanner--log (format "scanimage command: %s"
+										 scanimage-command))
+				   (make-process :name "Scanner (scanimage)"
+								 :command scanimage-command
+								 :sentinel #'process-or-finish
+								 :stderr (scanner--log-buffer))))
+				(process-or-finish
+				 (process event)
+				 (condition-case err
+					 (let ((ev (string-trim event)))
+					   (unless (string= "finished" ev)
+						 (error "%s: %s" process ev))
+					   (if scanner-use-unpaper
+						   (unpaper)
+						 (finish)))
+				   (error
+					(cleanup)
+					(signal (car err) (cdr err)))))
+				(unpaper
+				 ()
+				 (cl-assert scanner-unpaper-program)
+				 (let ((unpaper-args (scanner--program-args
+									  scanner--unpaper-preview-argspec
+									  :tmp-dir tmp-dir)))
+				   (scanner--log "unpaper arguments: %s" unpaper-args)
+				   (make-process :name "Scanner (unpaper)"
+								 :command `(,scanner-unpaper-program
+											,@unpaper-args)
+								 :sentinel #'unpaper-sentinel
+								 :std-err (scanner--log-buffer))))
+				(unpaper-sentinel
+				 (process event)
+				 (condition-case err
+					 (let ((ev (string-trim event)))
+					   (unless (string= "finished" ev)
+						 (error "%s: %s" process ev))
+					   (finish))
+				   (error
+					(cleanup)
+					(signal (car err) (cdr err)))))
+				(finish
+				 ()
+				 (let ((output-file (if scanner-use-unpaper
+										(concat (file-name-as-directory tmp-dir)
+												"output0001.pnm")
+									  img-file)))
+				   (if (and (display-images-p)
+							(image-type-available-p 'pbm))
+					   (with-current-buffer-window "*scan preview*" nil nil
+						 (insert-image-file output-file nil)
+						 (image-mode)
+						 (cleanup))
+					 (dired tmp-dir))))
+				(cleanup
+				 ()
+				 (and tmp-dir (delete-directory tmp-dir t))))
+      (scanimage))))
 
 (provide 'scanner)
 
