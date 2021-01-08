@@ -88,6 +88,16 @@
   "Resolutions for images and documents."
   :type '(plist :value-type number))
 
+(defcustom scanner-brightness
+  20
+  "Brightness setting for the scan."
+  :type '(const integer))
+
+(defcustom scanner-contrast
+  50
+  "Contrast setting for the scan."
+  :type '(const integer))
+
 (defcustom scanner-paper-sizes
   '(:a3
     (297 420)
@@ -378,6 +388,12 @@ border-scan."
     (define-key map [image-size]
       '(menu-item "Select image size" scanner-select-image-size
 				  :help "Select a size for image scanning."))
+	(define-key map [contrast]
+	  '(menu-item "Set contrast" scanner-set-contrast
+				  :help "Set the scanner's contrast."))
+	(define-key map [brightness]
+	  '(menu-item "Set brightness" scanner-set-brightness
+				  :help "Set the scanner's brightness."))
     (define-key map [img-res]
       '(menu-item "Set image resolution" scanner-set-image-resolution
 				  :help "Set the resolution for image scanning."))
@@ -429,7 +445,7 @@ name.")
 
 (eval-and-compile
   (defconst scanner--device-specific-switches
-    '("--mode" "--resolution" "-x" "-y")
+    '("--mode" "--resolution" "-x" "-y" "--brightness" "--contrast")
     "List of required device specific options.
 
 These options are necessary for the full set of features offered
@@ -474,19 +490,29 @@ y-dimension.  If no size is configured, return nil."
 						  (plist-get scanner-image-format
 									 (plist-get args :scan-type))))
 		"--mode=" (lambda (args)
-					(scanner--when-switch "--mode" args
-					  (plist-get scanner-scan-mode
-								 (plist-get args :scan-type))))
+					(scanner--when-switch
+					 "--mode" args
+					 (plist-get scanner-scan-mode
+								(plist-get args :scan-type))))
 		"--resolution=" (lambda (args)
-						  (scanner--when-switch "--resolution" args
-							 (plist-get scanner-resolution
-										(plist-get args :scan-type))))
+						  (scanner--when-switch
+						   "--resolution" args
+						   (plist-get scanner-resolution
+									  (plist-get args :scan-type))))
 		"-x" (lambda (args)
-			   (scanner--when-switch "-x" args
-				 (scanner--size (plist-get args :scan-type) #'car)))
+			   (scanner--when-switch
+				"-x" args
+				(scanner--size (plist-get args :scan-type) #'car)))
 		"-y" (lambda (args)
-			   (scanner--when-switch "-y" args
-				 (scanner--size (plist-get args :scan-type) #'cadr)))
+			   (scanner--when-switch
+				"-y" args
+				(scanner--size (plist-get args :scan-type) #'cadr)))
+		"--brightness=" (lambda (args)
+						  (scanner--when-switch "--brightness" args
+												scanner-brightness))
+		"--contrast=" (lambda (args)
+						  (scanner--when-switch "--contrast" args
+												scanner-contrast))
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list specification for scanimage.")
 
@@ -732,6 +758,18 @@ them.  Otherwise, return nil."
   (interactive "NDocument scan resolution: ")
   (setq scanner-resolution
 		(plist-put scanner-resolution :doc resolution)))
+
+;;;###autoload
+(defun scanner-set-brightness (brightness)
+  "Set the BRIGHTNESS."
+  (interactive "NBrightness: ")
+  (setq scanner-brightness (min  (max brightness 0) 100)))
+
+;;;###autoload
+(defun scanner-set-contrast (contrast)
+  "Set the CONTRAST."
+  (interactive "NContrast: ")
+  (setq scanner-contrast (min (max contrast 0) 100)))
 
 ;;;###autoload
 (defun scanner-select-device (device)
