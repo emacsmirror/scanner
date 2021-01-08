@@ -493,29 +493,25 @@ y-dimension.  If no size is configured, return nil."
 						  (plist-get scanner-image-format
 									 (plist-get args :scan-type))))
 		"--mode=" (lambda (args)
-					(scanner--when-switch
-					 "--mode" args
-					 (plist-get scanner-scan-mode
-								(plist-get args :scan-type))))
+					(scanner--when-switch "--mode" args
+					  (plist-get scanner-scan-mode
+								 (plist-get args :scan-type))))
 		"--resolution=" (lambda (args)
-						  (scanner--when-switch
-						   "--resolution" args
-						   (plist-get scanner-resolution
-									  (plist-get args :scan-type))))
+						  (scanner--when-switch "--resolution" args
+							(plist-get scanner-resolution
+									   (plist-get args :scan-type))))
 		"-x" (lambda (args)
-			   (scanner--when-switch
-				"-x" args
-				(scanner--size (plist-get args :scan-type) #'car)))
+			   (scanner--when-switch "-x" args
+				 (scanner--size (plist-get args :scan-type) #'car)))
 		"-y" (lambda (args)
-			   (scanner--when-switch
-				"-y" args
-				(scanner--size (plist-get args :scan-type) #'cadr)))
+			   (scanner--when-switch "-y" args
+				 (scanner--size (plist-get args :scan-type) #'cadr)))
 		"--brightness=" (lambda (args)
 						  (scanner--when-switch "--brightness" args
-												scanner-brightness))
+							scanner-brightness))
 		"--contrast=" (lambda (args)
-						  (scanner--when-switch "--contrast" args
-												scanner-contrast))
+						(scanner--when-switch "--contrast" args
+						  scanner-contrast))
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list specification for scanimage.")
 
