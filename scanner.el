@@ -763,7 +763,7 @@ selection is made."
 
 ;;;###autoload
 (defun scanner-select-page-layout (layout)
-  "Select the page layout."
+  "Select the page LAYOUT."
   (interactive (list (completing-read "Select page layout: "
 									  '("single" "double" "none")
 									  nil t)))
