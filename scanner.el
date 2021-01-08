@@ -525,6 +525,9 @@ y-dimension.  If no size is configured, return nil."
 (defvar scanner--scanimage-preview-argspec
   (list "-d" 'scanner-device-name
 		"--format=" "pnm"
+		"--mode" (lambda (args)
+				   (scanner--when-switch "--mode" args
+					 "Gray"))
 		"--resolution=" (lambda (args)
 						  (scanner--when-switch "--resolution" args
 							scanner-preview-resolution))
