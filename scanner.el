@@ -854,7 +854,9 @@ selection is made."
 (defun scanner-toggle-use-unpaper ()
   "Toggle use of unpaper."
   (interactive)
-  (setq scanner-use-unpaper (not scanner-use-unpaper)))
+  (setq scanner-use-unpaper (not scanner-use-unpaper))
+  (message "Processing with unpaper is %sabled"
+		   (if scanner-use-unpaper "en" "dis")))
 
 ;;;###autoload
 (defun scanner-select-page-layout (layout)
