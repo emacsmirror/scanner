@@ -409,6 +409,9 @@ border-scan."
     (define-key map [doc-res]
       '(menu-item "Set document resolution" scanner-set-document-resolution
 				  :help "Set the resolution for document scanning."))
+	(define-key map [scan-delay]
+	  '(menu-item "Set delay between scans" scanner-set-scan-delay
+				  :help "Set the delay between multi-page scans."))
     (define-key map [select-dev]
       '(menu-item "Select scanning device" scanner-select-device
 				  :help "Select a scanning device."))
@@ -770,6 +773,12 @@ them.  Otherwise, return nil."
   "Set the CONTRAST."
   (interactive "NContrast: ")
   (setq scanner-contrast (min (max contrast 0) 100)))
+
+;;;###autoload
+(defun scanner-set-scan-delay (delay)
+  "Set the scan DELAY."
+  (interactive "NDelay between page scans: ")
+  (setq scanner-scan-delay (max delay 0)))
 
 ;;;###autoload
 (defun scanner-select-device (device)
