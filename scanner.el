@@ -682,7 +682,7 @@ construct a shell command."
 		'output (lambda (args) (concat (file-name-as-directory
 								  (plist-get args :tmp-dir))
 								 "output%04d.pnm")))
-  "The arguments list specification for unpaper.")
+  "The arguments list specification for unpaper in preview scans.")
 
 (defun scanner--ensure-init ()
   "Ensure that scanning device is initialized.
