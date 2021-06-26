@@ -90,18 +90,18 @@
 
 (defcustom scanner-preview-resolution
   75
-  "Resolutions for preview scans"
-  :type '(const integer))
+  "Resolutions for preview scans."
+  :type '(integer))
 
 (defcustom scanner-brightness
   20
   "Brightness setting for the scan."
-  :type '(const integer))
+  :type '(integer))
 
 (defcustom scanner-contrast
   50
   "Contrast setting for the scan."
-  :type '(const integer))
+  :type '(integer))
 
 (defcustom scanner-paper-sizes
   '(:a3
