@@ -380,7 +380,7 @@ border-scan."
 				  :enable (and (boundp 'scanner-use-unpaper)
 							   scanner-use-unpaper)))
 	(define-key map [use-unpaper]
-	  '(menu-item "Use unpaper for scan enhancement"
+	  '(menu-item "Use unpaper to enhance document scans"
 				  scanner-toggle-use-unpaper
 				  :help "Enable scan post-processing using unpaper."
 				  :button (:toggle . (and (boundp 'scanner-use-unpaper)
@@ -393,16 +393,12 @@ border-scan."
     (define-key map [image-size]
       '(menu-item "Select image size" scanner-select-image-size
 				  :help "Select a size for image scanning."))
-	(define-key map [contrast]
-	  '(menu-item "Set contrast" scanner-set-contrast
-				  :help "Set the scanner's contrast."))
-	(define-key map [brightness]
-	  '(menu-item "Set brightness" scanner-set-brightness
-				  :help "Set the scanner's brightness."))
-    (define-key map [img-res]
+	(define-key map [img-res]
       '(menu-item "Set image resolution" scanner-set-image-resolution
 				  :help "Set the resolution for image scanning."))
-    (define-key map [languages]
+	(define-key map [seperator4]
+      '(menu-item "--"))
+	(define-key map [languages]
       '(menu-item "Select OCR languages" scanner-select-languages
 				  :help "Select languages for OCR."))
     (define-key map [outputs]
@@ -414,6 +410,14 @@ border-scan."
     (define-key map [doc-res]
       '(menu-item "Set document resolution" scanner-set-document-resolution
 				  :help "Set the resolution for document scanning."))
+    (define-key map [seperator3]
+      '(menu-item "--"))
+	(define-key map [contrast]
+	  '(menu-item "Set contrast" scanner-set-contrast
+				  :help "Set the scanner's contrast."))
+    (define-key map [brightness]
+	  '(menu-item "Set brightness" scanner-set-brightness
+				  :help "Set the scanner's brightness."))
 	(define-key map [scan-delay]
 	  '(menu-item "Set delay between scans" scanner-set-scan-delay
 				  :help "Set the delay between multi-page scans."))
@@ -441,7 +445,7 @@ border-scan."
 
 ;;;###autoload
 (define-key-after menu-bar-tools-menu [scanner]
-  (list 'menu-item "Scanner" scanner-menu))
+  (list 'menu-item "Scan" scanner-menu))
 
 
 ;;;; internal variables and functions
