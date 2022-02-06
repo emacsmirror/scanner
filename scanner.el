@@ -333,7 +333,7 @@ border-scan."
   :type '(repeat string))
 
 
-;;;; menu
+;;;; menu and keymap
 ;;;###autoload
 (defvar scanner-enhancement-menu
   (let ((map (make-sparse-keymap "Scan Enhancement")))
@@ -446,6 +446,35 @@ border-scan."
 ;;;###autoload
 (define-key-after menu-bar-tools-menu [scanner]
   (list 'menu-item "Scan" scanner-menu))
+
+;;;###autoload
+(defvar scanner-map
+  (let ((map (make-sparse-keymap)))
+	(define-key map "d" #'scanner-scan-document)
+	(define-key map "i" #'scanner-scan-image)
+	(define-key map "D" #'scanner-scan-multi-doc)
+	(define-key map "I" #'scanner-scan-multi-images)
+	(define-key map "p" #'scanner-scan-preview)
+	(define-key map "r" #'scanner-set-document-resolution)
+	(define-key map "R" #'scanner-set-image-resolution)
+	(define-key map "s" #'scanner-select-papersize)
+	(define-key map "S" #'scanner-select-image-size)
+	(define-key map "u" #'scanner-toggle-use-unpaper)
+	(define-key map "l" #'scanner-select-languages)
+	(define-key map "o" #'scanner-select-outputs)
+	(define-key map "cd" #'scanner-select-device)
+	(define-key map "ct" #'scanner-set-scan-delay)
+	(define-key map "ci" #'scanner-select-input-pages)
+	(define-key map "co" #'scanner-select-output-pages)
+	(define-key map "cl" #'scanner-select-page-layout)
+	(define-key map "cr" #'scanner-select-pre-rotation)
+	(define-key map "cR" #'scanner-select-post-rotation)
+	(define-key map "cs" #'scanner-select-pre-size)
+	(define-key map "cS" #'scanner-select-post-size)
+	(define-key map "cb" #'scanner-set-brightness)
+	(define-key map "cc" #'scanner-set-contrast)
+	map)
+  "The scanner keymap.")
 
 
 ;;;; internal variables and functions
