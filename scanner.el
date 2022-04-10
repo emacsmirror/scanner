@@ -389,7 +389,10 @@ This border is before any further processing."
 ;;;###autoload
 (defvar scanner-menu
   (let ((map (make-sparse-keymap)))
-    (define-key map [image-size]
+    (define-key map [show-config]
+      '(menu-item "Show current configuration" scanner-show-config
+				  :help "Show the current configuration."))
+	(define-key map [image-size]
       '(menu-item "Select image size" scanner-select-image-size
 				  :help "Select a size for image scanning."))
 	(define-key map [img-res]
@@ -461,6 +464,7 @@ This border is before any further processing."
 	(define-key map "u" #'scanner-toggle-use-unpaper)
 	(define-key map "l" #'scanner-select-languages)
 	(define-key map "o" #'scanner-select-outputs)
+	(define-key map "C" #'scanner-show-config)
 	(define-key map "cd" #'scanner-select-device)
 	(define-key map "ct" #'scanner-set-scan-delay)
 	(define-key map "ci" #'scanner-select-input-pages)
@@ -953,6 +957,30 @@ selection is made."
   (setq scanner-unpaper-post-size (if (string= "none" size)
 									 nil
 								   size)))
+;;;###autoload
+(defun scanner-show-config ()
+  "Show the current configuration."
+  (interactive)
+  (with-current-buffer-window "*scanner-config*" nil nil
+	(let ((variables (mapcar (lambda (variable)
+							   (cons (car variable)
+									 (replace-regexp-in-string "-" " "
+															   (symbol-name (car variable))
+															   nil nil nil
+															   (length "scanner-"))))
+							 (custom-group-members 'scanner nil))))
+	  (widget-create 'push-button
+					 :notify (lambda (&rest ignore)
+							   (customize-group 'scanner))
+					 "Customize scanner")
+	  (insert "\n\nCurrent configuration:\n\n")
+	  (mapc (lambda (variable)
+			  (insert (format "%25s: %s\n"
+							  (cdr variable)
+							  (symbol-value (car variable)))))
+			variables)
+	  (use-local-map widget-keymap)
+	  (widget-setup))))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
