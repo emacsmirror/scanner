@@ -323,8 +323,7 @@ string; e.g. ‘\"21cm,29.7cm\"’."
   "Define a border at the sheet edges to be set to white.
 The border is specified as a list of four integers (widths in
 pixels) for left, top, right, and bottom edge, respectively.
-This border is applied after deskewing and before automatic
-border-scan."
+This border is before any further processing."
   :type '(list integer integer integer integer))
 
 (defcustom scanner-unpaper-switches
@@ -680,16 +679,16 @@ construct a shell command."
 		"--post-rotate" 'scanner-unpaper-post-rotation
 		"--size" 'scanner-unpaper-pre-size
 		"--post-size" 'scanner-unpaper-post-size
-		"--border" (lambda (_) (mapconcat #'number-to-string
-									 scanner-unpaper-border
-									 ","))
+		"--pre-border" (lambda (_) (mapconcat #'number-to-string
+										 scanner-unpaper-border
+										 ","))
 		'user-switches 'scanner-unpaper-switches
 		'input (lambda (args) (concat (file-name-as-directory
 								  (plist-get args :tmp-dir))
 								 "input%04d.pnm"))
 		'output (lambda (args) (concat (file-name-as-directory
-								  (plist-get args :tmp-dir))
-								 "output%04d.pnm")))
+								   (plist-get args :tmp-dir))
+								  "output%04d.pnm")))
   "The arguments list specification for unpaper.")
 
 (defvar scanner--unpaper-preview-argspec
@@ -701,16 +700,16 @@ construct a shell command."
 		"--post-rotate" 'scanner-unpaper-post-rotation
 		"--size" 'scanner-unpaper-pre-size
 		"--post-size" 'scanner-unpaper-post-size
-		"--border" (lambda (_) (mapconcat #'number-to-string
-									 scanner-unpaper-border
-									 ","))
+		"--pre-border" (lambda (_) (mapconcat #'number-to-string
+										 scanner-unpaper-border
+										 ","))
 		'user-switches 'scanner-unpaper-switches
 		'input (lambda (args) (concat (file-name-as-directory
 								  (plist-get args :tmp-dir))
 								 "input%04d.pnm"))
 		'output (lambda (args) (concat (file-name-as-directory
-								  (plist-get args :tmp-dir))
-								 "output%04d.pnm")))
+								   (plist-get args :tmp-dir))
+								  "output%04d.pnm")))
   "The arguments list specification for unpaper in preview scans.")
 
 (defun scanner--ensure-init ()
