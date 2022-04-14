@@ -961,7 +961,7 @@ selection is made."
 (defun scanner-show-config ()
   "Show the current configuration."
   (interactive)
-  (when (functionp 'custom-group-members)
+  (when (fboundp 'custom-group-members)
 	(with-current-buffer-window "*scanner-config*" nil nil
 	  (let ((variables (mapcar (lambda (variable)
 								 (cons (car variable)
