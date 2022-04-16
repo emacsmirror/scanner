@@ -74,6 +74,7 @@
 
 (require 'dash)
 (require 'cl-lib)
+(require 'cus-edit)
 (eval-when-compile (require 'subr-x))
 (require 'menu-bar)
 
@@ -961,27 +962,26 @@ selection is made."
 (defun scanner-show-config ()
   "Show the current configuration."
   (interactive)
-  (when (fboundp 'custom-group-members)
-	(with-current-buffer-window "*scanner-config*" nil nil
-	  (let ((variables (mapcar (lambda (variable)
-								 (cons (car variable)
-									   (replace-regexp-in-string "-" " "
-																 (symbol-name (car variable))
-																 nil nil nil
-																 (length "scanner-"))))
-							   (custom-group-members 'scanner nil))))
-		(widget-create 'push-button
-					   :notify (lambda (&rest _)
-								 (customize-group 'scanner))
-					   "Customize scanner")
-		(insert "\n\nCurrent configuration:\n\n")
-		(mapc (lambda (variable)
-				(insert (format "%25s: %s\n"
-								(cdr variable)
-								(symbol-value (car variable)))))
-			  variables)
-		(use-local-map widget-keymap)
-		(widget-setup)))))
+  (with-current-buffer-window "*scanner-config*" nil nil
+	(let ((variables (mapcar (lambda (variable)
+							   (cons (car variable)
+									 (replace-regexp-in-string "-" " "
+															   (symbol-name (car variable))
+															   nil nil nil
+															   (length "scanner-"))))
+							 (custom-group-members 'scanner nil))))
+	  (widget-create 'push-button
+					 :notify (lambda (&rest _)
+							   (customize-group 'scanner))
+					 "Customize scanner")
+	  (insert "\n\nCurrent configuration:\n\n")
+	  (mapc (lambda (variable)
+			  (insert (format "%25s: %s\n"
+							  (cdr variable)
+							  (symbol-value (car variable)))))
+			variables)
+	  (use-local-map widget-keymap)
+	  (widget-setup))))
 
 ;;;###autoload
 (defun scanner-scan-document (npages filename)
