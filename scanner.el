@@ -1078,7 +1078,8 @@ performing OCR."
 				   (make-process :name "Scanner (scanimage)"
 								 :command scanimage-command
 								 :sentinel #'scan-or-process
-								 :stderr (scanner--log-buffer))))
+								 :buffer (scanner--log-buffer)
+								 :std-err nil)))
 				(scan-or-process
 				 (process event)
 				 (condition-case err
@@ -1111,7 +1112,8 @@ performing OCR."
 								 :command `(,scanner-unpaper-program
 											,@unpaper-args)
 								 :sentinel #'unpaper-sentinel
-								 :std-err (scanner--log-buffer))))
+								 :buffer (scanner--log-buffer)
+								 :std-err nil)))
 				(unpaper-sentinel
 				 (process event)
 				 (condition-case err
@@ -1146,7 +1148,8 @@ performing OCR."
 								 :command `(,scanner-tesseract-program
 											,@tesseract-args)
 								 :sentinel #'finish
-								 :stderr (scanner--log-buffer))))
+								 :buffer (scanner--log-buffer)
+								 :std-err nil)))
 				(finish
 				 (process event)
 				 (unwind-protect
@@ -1225,7 +1228,8 @@ available, ask for a selection interactively."
 					 (make-process :name "Scanner (scanimage)"
 								   :command scanimage-command
 								   :sentinel #'scan-or-finish
-								   :stderr (scanner--log-buffer)))))
+								   :buffer (scanner--log-buffer)
+								   :std-err nil))))
 				(scan-or-finish
 				 (process event)
 				 (let ((ev (string-trim event)))
