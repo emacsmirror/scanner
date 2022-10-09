@@ -293,12 +293,12 @@ plugged in.  For these, auto-detection will always be done."
 				 (const :tag "none" nil)))
 
 (defconst scanner--unpaper-sizes
-  '("a5" "a4" "a3" "letter" "legal" "a5-landscape" "a4-landscape"
-	"a3-landscape" "letter-landscape" "legal-landscape")
+  '(:a5 :a4 :a3 :letter :legal :a5-landscape :a4-landscape
+		:a3-landscape :letter-landscape :legal-landscape)
   "Paper size names understood by unpaper.")
 
 (defcustom scanner-unpaper-pre-size
-  "a4"
+  :a4
   "Change sheet size before post-processing.
 Either choose one of the pre-defined options (see
 ‘scanner--unpaper-sizes’), or enter width and height values as a
@@ -309,7 +309,7 @@ string; e.g. ‘\"21cm,29.7cm\"’."
 						   scanner--unpaper-sizes)))
 
 (defcustom scanner-unpaper-post-size
-  "a4"
+  :a4
   "Change sheet size after post-processing.
 Either choose one of the pre-defined options (see
 ‘scanner--unpaper-sizes’), or enter width and height values as a
@@ -675,6 +675,11 @@ construct a shell command."
 		'outputs 'scanner-tesseract-outputs)
   "The arguments list specification for tesseract.")
 
+(defun scanner--keyword-string (arg)
+  (if (keywordp arg)
+	  (substring (symbol-name arg) 1)
+	arg))
+
 (defvar scanner--unpaper-argspec
   (list "--layout" 'scanner-unpaper-page-layout
 		"--dpi" (lambda (_) (plist-get scanner-resolution :doc))
@@ -682,8 +687,10 @@ construct a shell command."
 		"--output-pages" 'scanner-unpaper-output-pages
 		"--pre-rotate" 'scanner-unpaper-pre-rotation
 		"--post-rotate" 'scanner-unpaper-post-rotation
-		"--size" 'scanner-unpaper-pre-size
-		"--post-size" 'scanner-unpaper-post-size
+		"--size" (lambda (_)
+				   (scanner--keyword-string scanner-unpaper-pre-size))
+		"--post-size" (lambda (_)
+						(scanner--keyword-string scanner-unpaper-post-size))
 		"--pre-border" (lambda (_) (mapconcat #'number-to-string
 										 scanner-unpaper-border
 										 ","))
@@ -790,9 +797,7 @@ them.  Otherwise, return nil."
   "Select the papersize SIZE for document scanning."
   (interactive
    (let ((choices (append (delq nil
-								(mapcar (lambda (x)
-										  (and (keywordp x)
-											   (substring (symbol-name x) 1)))
+								(mapcar #'scanner--keyword-string
 										scanner-paper-sizes))
 						  '("whatever"))))
      (list (intern (concat ":"
@@ -937,6 +942,14 @@ selection is made."
   (interactive (scanner--select-rotation "Select post-rotation: "))
   (setq scanner-unpaper-post-rotation rotation))
 
+
+(defun scanner--process-unpaper-size (size)
+  (if (string= "none" size)
+	  nil
+	(if (string= ":" (substring size 0 1))
+		(intern size)
+	  size)))
+
 ;;;###autoload
 (defun scanner-select-pre-size (size)
   "Select the page SIZE before processing."
@@ -944,9 +957,7 @@ selection is made."
 									  (cons "none"
 											scanner--unpaper-sizes)
 									  nil 'confirm)))
-  (setq scanner-unpaper-pre-size (if (string= "none" size)
-									 nil
-								   size)))
+  (setq scanner-unpaper-pre-size (scanner--process-unpaper-size size)))
 
 ;;;###autoload
 (defun scanner-select-post-size (size)
@@ -955,9 +966,8 @@ selection is made."
 									  (cons "none"
 											scanner--unpaper-sizes)
 									  nil 'confirm)))
-  (setq scanner-unpaper-post-size (if (string= "none" size)
-									 nil
-								   size)))
+  (setq scanner-unpaper-post-size (scanner--process-unpaper-size size)))
+
 ;;;###autoload
 (defun scanner-show-config ()
   "Show the current configuration."
