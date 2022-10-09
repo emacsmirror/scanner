@@ -597,6 +597,15 @@ y-dimension.  If no size is configured, return nil."
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list used for preview scans.")
 
+(defun scanner--cm-to-pixels (cm resolution)
+  (floor (* (/ cm 2.54) resolution)))
+
+(defun scanner--corner-pixels (size resolution)
+  (list 0
+		0
+		(scanner--cm-to-pixels (car size) resolution)
+		(scanner--cm-to-pixels (cadr size) resolution)))
+
 (defun scanner--program-args (argspec &rest args)
   "Return an arguments list as specified in ARGSPEC, assuming ARGS.
 
