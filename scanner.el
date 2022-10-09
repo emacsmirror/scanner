@@ -118,7 +118,21 @@
     :legal
     (215.9 355.6)
     :letter
-    (215.9 279.4))
+    (215.9 279.4)
+	:a3-landscape
+    (420 297)
+    :a4-landscape
+    (297 210)
+    :a5-landscape
+    (210 148)
+    :a6-landscape
+    (148 105)
+    :tabloid-landscape
+    (431.8 279.4)
+    :legal-landscape
+    (355.6 215.9)
+    :letter-landscape
+    (279.4 215.9))
   "List of paper sizes for documents.
 The first of each pair of numbers is the paper width in mm,
 the second is the height in mm."
