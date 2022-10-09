@@ -306,6 +306,21 @@ plugged in.  For these, auto-detection will always be done."
 				 (const :tag "counter-clockwise" -90)
 				 (const :tag "none" nil)))
 
+(defcustom scanner-unpaper-scan-direction
+  "left,bottom"
+  "Edges from which to scan for rotation."
+  :type '(string))
+
+(defcustom scanner-unpaper-scan-size
+  3000
+  "Size of virtual line for rotation detection."
+  :type '(number))
+
+(defcustom scanner-unpaper-scan-step
+  0.01
+  "Steps between single rotation-angle detections."
+  :type '(number))
+
 (defconst scanner--unpaper-sizes
   '(:a5 :a4 :a3 :letter :legal :a5-landscape :a4-landscape
 		:a3-landscape :letter-landscape :legal-landscape)
@@ -341,7 +356,7 @@ pixels) for left, top, right, and bottom edge, respectively.
 This border is before any further processing."
   :type '(list integer integer integer integer))
 
-(defcustom scanner-unpaper-mask
+(defcustom scanner-unpaper-mask-size
   nil
   "Define the mask size to be used if ‘scanner-unpaper-page-layout’
   is \"none\".  The mask is necessary for deskewing; any pixel
@@ -748,6 +763,20 @@ construct a shell command."
 		"--pre-border" (lambda (_) (mapconcat #'number-to-string
 										 scanner-unpaper-border
 										 ","))
+		"--no-mask-scan" (lambda (_) (string= "none" scanner-unpaper-page-layout))
+		"--mask" (lambda (_)
+				   (when (string= "none" scanner-unpaper-page-layout)
+					 (mapconcat #'number-to-string
+								(if scanner-unpaper-mask-size
+									scanner-unpaper-mask-size
+								  (scanner--corner-pixels
+								   (scanner--size-cm
+									scanner-unpaper-pre-size)
+								   (plist-get scanner-resolution :doc)))
+								",")))
+		"--deskew-scan-direction" 'scanner-unpaper-scan-direction
+		"--deskew-scan-size" 'scanner-unpaper-scan-size
+		"--deskew-scan-step" 'scanner-unpaper-scan-step
 		'user-switches 'scanner-unpaper-switches
 		'input (lambda (args) (concat (file-name-as-directory
 								  (plist-get args :tmp-dir))
@@ -757,6 +786,7 @@ construct a shell command."
 								  "output%04d.pnm")))
   "The arguments list specification for unpaper.")
 
+;; FIXME remove this--only the resolution must be adjusted compared to the above
 (defvar scanner--unpaper-preview-argspec
   (list "--layout" 'scanner-unpaper-page-layout
 		"--dpi" 'scanner-preview-resolution
