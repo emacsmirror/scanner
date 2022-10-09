@@ -626,6 +626,7 @@ ARGSPEC is expected to be a list of the form:
    (\"--switch1\" 'argument1
     \"--switch2=\" (lambda (args) \"bar\"))
     \"--never-used\" nil
+    \"--switch-without-argument\" t
     'symbol \"--always-there\"
     'other-symbol (\"baz\" \"quux\"))
 
@@ -639,9 +640,11 @@ translated into the arguments list:
 											 (number-to-string val)
 										   val)))
 							   (if (stringp sw)
-								   (if (string-match ".=\\'" sw)
-									   (list (concat sw sval))
-									 (list sw sval))
+								   (if (stringp sval)
+									   (if (string-match ".=\\'" sw)
+										   (list (concat sw sval))
+										 (list sw sval))
+									 (list sw))
 								 (list sval)))))
 			  (process-option (switch value)
 							  (cond ((functionp value)
