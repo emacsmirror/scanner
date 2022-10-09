@@ -610,6 +610,21 @@ y-dimension.  If no size is configured, return nil."
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list used for preview scans.")
 
+(defun scanner--size-cm (size)
+  (cond ((and (keywordp size)
+			  (plist-member scanner-paper-sizes size))
+		 (mapcar (lambda (num) (/ num 10.0))
+				 (plist-get scanner-paper-sizes size)))
+		((stringp size) (mapcar (lambda (size-str)
+								  (let ((idx (string-match
+											  "\\([[:digit:]]+\\(\\.[[:digit:]]+\\)?\\)cm"
+											  size-str)))
+									(if idx (string-to-number
+											 (match-string 1 size-str))
+									  (user-error "Unknown size format: %s" size-str))))
+								(split-string size ",")))
+		(t (error "Unknown paper size: %s" size))))
+
 (defun scanner--cm-to-pixels (cm resolution)
   (floor (* (/ cm 2.54) resolution)))
 
