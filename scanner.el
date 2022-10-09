@@ -341,6 +341,19 @@ pixels) for left, top, right, and bottom edge, respectively.
 This border is before any further processing."
   :type '(list integer integer integer integer))
 
+(defcustom scanner-unpaper-mask
+  nil
+  "Define the mask size to be used if ‘scanner-unpaper-page-layout’
+  is \"none\".  The mask is necessary for deskewing; any pixel
+  outside the mask will be set to white.  If nil, attempt to set
+  the mask from ‘scanner-unpaper-pre-size’, otherwise this option
+  must be set to a list ‘(x1 y1 x2 y2)’ specifying the corners of
+  the mask in pixels, e.g. ‘(0 0 300 300)’ specifies a mask of
+  one square inch in the upper left corner, if the resolution is
+  300 dpi."
+  :type '(choice (const :tag "From paper size" nil)
+				 (list integer integer integer integer)))
+
 (defcustom scanner-unpaper-switches
   '()
   "Additional options to be passed to unpaper(1)."
