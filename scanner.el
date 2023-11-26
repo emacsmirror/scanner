@@ -85,14 +85,9 @@
   :group 'multimedia)
 
 (defcustom scanner-resolution
-  '(:image 600 :doc 300)
+  '(:image 600 :doc 300 :preview 75)
   "Resolutions for images and documents."
   :type '(plist :value-type integer))
-
-(defcustom scanner-preview-resolution
-  75
-  "Resolutions for preview scans."
-  :type '(integer))
 
 (defcustom scanner-brightness
   20
@@ -243,7 +238,7 @@ in ‘scanner-tesseract-configdir’."
   :type '(repeat string))
 
 (defcustom scanner-scan-mode
-  '(:image "Color" :doc "Color")
+  '(:image "Color" :doc "Color" :preview "Gray")
   "Scan modes for images and documents.
 This is usually \"Color\" or \"Gray\", but depends on your
 scanning device."
@@ -609,7 +604,7 @@ y-dimension.  If no size is configured, return nil."
 					 "Gray"))
 		"--resolution=" (lambda (args)
 						  (scanner--when-switch "--resolution" args
-							scanner-preview-resolution))
+							(plist-get scanner-resolution :preview)))
 		"-x" (lambda (args)
 			   (scanner--when-switch "-x" args
 				 (scanner--size (plist-get args :scan-type) #'car)))
@@ -786,10 +781,9 @@ construct a shell command."
 								  "output%04d.pnm")))
   "The arguments list specification for unpaper.")
 
-;; FIXME remove this--only the resolution must be adjusted compared to the above
 (defvar scanner--unpaper-preview-argspec
   (list "--layout" 'scanner-unpaper-page-layout
-		"--dpi" 'scanner-preview-resolution
+		"--dpi" (lambda (_) (plist-get scanner-resolution :preview))
 		"--input-pages" 'scanner-unpaper-input-pages
 		"--output-pages" 'scanner-unpaper-output-pages
 		"--pre-rotate" 'scanner-unpaper-pre-rotation
