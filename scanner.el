@@ -620,7 +620,7 @@ y-dimension.  If no size is configured, return nil."
 		'user-switches 'scanner-scanimage-switches)
   "The arguments list used for preview scans.")
 
-(defun scanner--size-cm (size)
+(defun scanner--size-in-cm (size)
   (cond ((and (keywordp size)
 			  (plist-member scanner-paper-sizes size))
 		 (mapcar (lambda (num) (/ num 10.0))
@@ -629,8 +629,8 @@ y-dimension.  If no size is configured, return nil."
 								  (let ((idx (string-match
 											  "\\([[:digit:]]+\\(\\.[[:digit:]]+\\)?\\)cm"
 											  size-str)))
-									(if idx (string-to-number
-											 (match-string 1 size-str))
+									(if idx
+										(string-to-number (match-string 1 size-str))
 									  (user-error "Unknown size format: %s" size-str))))
 								(split-string size ",")))
 		(t (error "Unknown paper size: %s" size))))
@@ -639,10 +639,13 @@ y-dimension.  If no size is configured, return nil."
   (floor (* (/ cm 2.54) resolution)))
 
 (defun scanner--corner-pixels (size resolution)
-  (list 0
-		0
-		(scanner--cm-to-pixels (car size) resolution)
-		(scanner--cm-to-pixels (cadr size) resolution)))
+  (let ((coords (list 0
+					  0
+					  (scanner--cm-to-pixels (car size) resolution)
+					  (scanner--cm-to-pixels (cadr size) resolution))))
+	(unless (cl-notany #'cl-minusp coords)
+	  (user-error "Size must be non-negative: %s" size))
+	coords))
 
 (defun scanner--program-args (argspec &rest args)
   "Return an arguments list as specified in ARGSPEC, assuming ARGS.
@@ -765,7 +768,7 @@ construct a shell command."
 								(if scanner-unpaper-mask-size
 									scanner-unpaper-mask-size
 								  (scanner--corner-pixels
-								   (scanner--size-cm
+								   (scanner--size-in-cm
 									scanner-unpaper-pre-size)
 								   (plist-get scanner-resolution :doc)))
 								",")))
@@ -1020,13 +1023,13 @@ selection is made."
   (interactive (scanner--select-rotation "Select post-rotation: "))
   (setq scanner-unpaper-post-rotation rotation))
 
-
 (defun scanner--process-unpaper-size (size)
-  (if (string= "none" size)
-	  nil
-	(if (string= ":" (substring size 0 1))
-		(intern size)
-	  size)))
+  (cond ((string= "none" size) nil)
+		((string= ":" (substring size 0 1)) (intern size))
+		(t (if (or (not (string-match-p "[[:alnum:]]+,[[:alnum:]]+" size))
+				   (cl-some #'string-empty-p (split-string size ",")))
+			   (user-error "Size must have two values, separated by comma: %s" size)
+			 size))))
 
 ;;;###autoload
 (defun scanner-select-pre-size (size)

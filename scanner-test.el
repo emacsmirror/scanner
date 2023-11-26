@@ -139,24 +139,38 @@
   "Test the cm to pixel conversion."
   (should (= 100 (scanner--cm-to-pixels 2.54 100)))
   (should (= 600 (scanner--cm-to-pixels 2.54 600)))
+  (should (= -600 (scanner--cm-to-pixels -2.54 600)))
+  (should (= -600 (scanner--cm-to-pixels 2.54 -600)))
   (should (= 0 (scanner--cm-to-pixels 2.54 0)))
+  (should (= 0 (scanner--cm-to-pixels 0 30)))
   (should (= 354 (scanner--cm-to-pixels 3 300)))
-  (should (= 300 (scanner--cm-to-pixels 2.54508 300))))
+  (should (= 300 (scanner--cm-to-pixels 2.54508 300)))
+  (should-error (= 300 (scanner--cm-to-pixels 'a 300))))
 
 (ert-deftest scanner--corner-pixels ()
   "Test the paper size to corner coordinates conversion."
-  (should (equal '(0 0 35078 25393) (scanner--corner-pixels '(297 215) 300))))
+  (should (equal '(0 0 35078 25393) (scanner--corner-pixels '(297 215) 300)))
+  (should-error (equal '(0 0 35078 25393) (scanner--corner-pixels 'a 300)))
+  (should-error (equal '(0 0 35078 25393)
+                       (scanner--corner-pixels '(a b) 300)))
+  (should-error (equal '(0 0 35078 25393)
+                       (scanner--corner-pixels '(-297 210) 300))))
 
 (ert-deftest scanner--keyword-string ()
   "Test the keyword to string conversion."
   (should (string= "keyword" (scanner--keyword-string :keyword)))
-  (should (string= "" (scanner--keyword-string :))))
+  (should (string= "" (scanner--keyword-string :)))
+  (should (string= "keyword" (scanner--keyword-string "keyword"))))
 
 (ert-deftest scanner--process-unpaper-size ()
   "Test paper size parsing."
   (should (eq nil (scanner--process-unpaper-size "none")))
   (should (eq :the-size (scanner--process-unpaper-size ":the-size")))
-  (should (string= "297cm,210cm" (scanner--process-unpaper-size "297cm,210cm"))))
+  (should (string= "297cm,210cm"
+                   (scanner--process-unpaper-size "297cm,210cm")))
+  (should-error (scanner--process-unpaper-size "297cm"))
+  (should-error (scanner--process-unpaper-size "297cm,"))
+  (should-error (scanner--process-unpaper-size '(297 210))))
 
 (provide 'scanner-test)
 
