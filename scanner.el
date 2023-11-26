@@ -653,12 +653,12 @@ y-dimension.  If no size is configured, return nil."
   "Return an arguments list as specified in ARGSPEC, assuming ARGS.
 
 ARGSPEC is expected to be a list of the form:
-   (\"--switch1\" 'argument1
+   (\"--switch1\" \\='argument1
     \"--switch2=\" (lambda (args) \"bar\"))
     \"--never-used\" nil
     \"--switch-without-argument\" t
-    'symbol \"--always-there\"
-    'other-symbol (\"baz\" \"quux\"))
+    \\='symbol \"--always-there\"
+    \\='other-symbol (\"baz\" \"quux\"))
 
 Assuming ‘argument1’ is ‘\"foo\"’, this specification will be
 translated into the arguments list:
