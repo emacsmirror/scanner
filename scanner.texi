@@ -57,6 +57,11 @@ The document was typeset with
 @insertcopying
 @end ifnottex
 
+@c TODO Organize the manual not as a list of features or options, but
+@c instead logically by subtopics.  Address the user's questions, say
+@c why a feature is there, what it is good for and how to use it to do a
+@c certain job.
+
 @c Generate the nodes for this menu with `C-c C-u C-a'.
 @menu
 * Overview::
@@ -125,7 +130,7 @@ the document may have to be rotated,
 some scan artifacts, like shadows, may have to be removed,
 
 @item
-the page may need deskewing,
+the page may need de-skewing,
 
 @item
 the language for OCR must be selected,
@@ -216,7 +221,7 @@ If the specified file already exists, @code{scanner-scan-document} will
 ask for confirmation to overwrite it.
 
 This command will trigger auto-detection if no device has been
-configured.  If more than one device are available, it will offer ask
+configured.  If more than one device are available, it will ask
 you to select one.
 
 If you configured Scanner to use @command{unpaper}, this command will
@@ -310,8 +315,8 @@ Scanner menu (@clicksequence{Tools @click{} Scanner}).
 
 The following commands help you configure some of the more-often used
 options.  They only change the options for the running session; if you
-want to permanently set an option, so it will be remembered between
-Emacs sessions, use the customization interface.
+want to permanently set an option, so Emacs will remember them between
+sessions, use the customization interface.
 
 @table @kbd
 @item M-x scanner-set-image-resolution
