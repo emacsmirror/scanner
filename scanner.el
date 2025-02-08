@@ -1,6 +1,6 @@
 ;;; scanner.el --- Scan documents and images -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020, 2021  Free Software Foundation, Inc
+;; Copyright (C) 2020, 2021, 2025  Free Software Foundation, Inc
 
 ;; Author: Raffael Stocker <r.stocker@mnet-mail.de>
 ;; Maintainer: Raffael Stocker <r.stocker@mnet-mail.de>
@@ -8,7 +8,7 @@
 ;; Version: 0.2
 ;; Package-Requires: ((emacs "25.1") (dash "2.12.0"))
 ;; Keywords: hardware, multimedia
-;; URL: https://gitlab.com/rstocker/scanner.git
+;; URL: https://codeberg.org/rstocker/scanner.git
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,49 +26,7 @@
 ;;; Commentary:
 
 ;; Scan documents and images using scanimage(1) from the SANE distribution and
-;; tesseract(1) for OCR and PDF export.
-;;
-;; The scanner package uses two sets of customizations for image mode and
-;; document mode, with the former usually configured to use high resolution
-;; and an image file format, like JPEG, and the latter to use lower resolution
-;; and a document format, like PDF or text.  The available file formats are
-;; provided by scanimage(1) for image mode and tesseract(1) for document mode.
-;; The scanner package uses tesseract(1) to provide optical character
-;; recognition (OCR).  You can select the language plugins with
-;; ‘scanner-tesseract-languages’.  See also the remark about the data
-;; directories below.
-;;
-;; In document mode, you can scan one or multiple pages that are then written
-;; in a customizable output format, e.g. (searchable) PDF or text, or whatever
-;; tesseract provides.  You can also customize resolution, intermediate image
-;; format, and paper size.  The command ‘scanner-scan-document’ starts a
-;; document scan.  Without a prefix argument, it scans one page.  With a
-;; non-numeric argument, it asks the user after each scanned page for
-;; confirmation to scan another page.  With a numeric argument, it scans that
-;; many pages.  In the latter case, it observes a delay between scans that is
-;; customizable using ‘scanner-scan-delay’.
-;;
-;; The ‘scanner-scan-image’ command performs one scan or multiple scans in
-;; image mode.  This function tries to guess the file format from the chosen
-;; file name or falls back to the configured default, see
-;; ‘scanner-image-format’.  The prefix argument works as in document mode.
-;;
-;; The scanning commands are also available in the Tools->Scanner menu.
-;;
-;; For both images and documents, you can customize the scan mode
-;; (e.g. "Color" or "Gray") if your scanning device supports it.
-;;
-;; You can pass additional options to the backends using the customization
-;; variables ‘scanner-scanimage-switches’ and ‘scanner-tesseract-switches’.
-;; The former variable is helpful for tuning brightness and contrast, for
-;; instance.
-;;
-;; Finally, the customization options ‘scanner-tessdata-dir’ and
-;; ‘scanner-tessdata-configdir’ must be set to point to tesseract's data
-;; directory containing the language definitions (usually something like
-;; /usr/share/tessdata/) and tesseract's configs directory containing the
-;; output configurations (usually something like
-;; /usr/share/tessdata/configs/).
+;; tesseract(1) for OCR and PDF export.  Enhance the scan with unpaper(1).
 
 ;;; Code:
 
