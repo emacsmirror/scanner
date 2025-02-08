@@ -26,7 +26,8 @@
 ;;; Commentary:
 
 ;; Scan documents and images using scanimage(1) from the SANE distribution and
-;; tesseract(1) for OCR and PDF export.  Enhance the scan with unpaper(1).
+;; tesseract(1) for OCR and PDF export.  Enhance the scan with unpaper(1), see
+;; https://github.com/unpaper/unpaper.
 
 ;;; Code:
 
